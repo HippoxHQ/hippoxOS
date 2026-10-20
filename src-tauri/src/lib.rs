@@ -22,20 +22,23 @@ use crate::hippox_core::*;
 use crate::scheduled_task::*;
 use crate::state::AppState;
 use crate::windows::TrayManager;
+use crate::windows::UpdateWindowManager;
 use crate::workspace::ensure_workspace_config;
 use hippox::get_hippox_core_config;
 use memcontext::MemContext;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tauri::webview::WebviewWindowBuilder;
-use tauri::WebviewUrl;
-use tauri::{DragDropEvent, Manager, WindowEvent};
+use tauri::{DragDropEvent, WindowEvent};
+use tauri::{Manager, WebviewUrl};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_dialog;
 use tauri_plugin_fs;
 use tokio::time::sleep;
+static STARTUP_UPDATE_CHECK_RUN: AtomicBool = AtomicBool::new(false);
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -86,8 +89,6 @@ pub fn run() {
                 log::error!("Failed to sync config to Hippox core: {}", e);
             }
             // ========== Initialize ONLY default Hippox LLM instance ==========
-            // NOTE: Only initialize the default instance, not all instances
-            // This reduces memory usage significantly
             if let Err(e) = init_default_hippox_instance().await {
                 log::error!("Failed to initialize default Hippox instance: {}", e);
             }
@@ -109,7 +110,6 @@ pub fn run() {
         });
     });
     // ========== Build and run Tauri application immediately ==========
-    // The app starts without waiting for any initialization
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
@@ -119,8 +119,15 @@ pub fn run() {
         .setup(|app| {
             #[cfg(target_os = "macos")]
             {
-                // init audio thread
                 crate::subsystem::videoeditor::audio::init_audio_threads();
+                nokhwa::nokhwa_initialize(|granted| {
+                    if granted {
+                        log::info!("macOS camera permission granted");
+                    } else {
+                        log::warn!("macOS camera permission not granted");
+                    }
+                    crate::subsystem::screen_record::service::emit_cameras_ready();
+                });
                 // use objc2::msg_send;
                 // use objc2::runtime::AnyObject;
                 // for (_label, win) in app.webview_windows() {
@@ -133,40 +140,84 @@ pub fn run() {
             }
             TrayManager::setup(app)?;
             crate::subsystem::screen_record::service::init_mouse_tracker(app.handle().clone());
+            // ========== Startup update check (runs once per process) ==========
+            let app_handle_for_update = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                run_startup_update_check(app_handle_for_update).await;
+            });
             Ok(())
         })
-        .on_window_event(|window, event| {
-            // Handle window events directly here
-            match event {
-                WindowEvent::Destroyed => {
-                    if window.label() == "main" {
-                        log::warn!("WebView destroyed for main window, attempting to restart...");
-                        let app_handle = window.app_handle().clone();
-                        let label = window.label().to_string();
-                        tokio::spawn(async move {
-                            // Wait a moment before restarting
-                            sleep(Duration::from_millis(500)).await;
-                            // Check if the window still exists (maybe it was intentionally closed)
-                            if app_handle.get_webview_window(&label).is_none() {
-                                log::info!("Auto-restarting main webview after crash");
-                                if let Err(e) = recreate_main_window(&app_handle, &label).await {
-                                    log::error!("Failed to auto-restart webview: {}", e);
-                                }
+        .on_window_event(|window, event| match event {
+            WindowEvent::Destroyed => {
+                if window.label() == "main" {
+                    log::warn!("WebView destroyed for main window, attempting to restart...");
+                    let app_handle = window.app_handle().clone();
+                    let label = window.label().to_string();
+                    tokio::spawn(async move {
+                        sleep(Duration::from_millis(500)).await;
+                        if app_handle.get_webview_window(&label).is_none() {
+                            log::info!("Auto-restarting main webview after crash");
+                            if let Err(e) = recreate_main_window(&app_handle, &label).await {
+                                log::error!("Failed to auto-restart webview: {}", e);
                             }
-                        });
-                    }
+                        }
+                    });
                 }
-                _ => {}
             }
+            _ => {}
         })
         .invoke_handler(register_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+/// Startup update check.
+async fn run_startup_update_check(app_handle: tauri::AppHandle) {
+    if STARTUP_UPDATE_CHECK_RUN.swap(true, Ordering::SeqCst) {
+        log::info!("[Startup] Update check already executed; skipping.");
+        return;
+    }
+    sleep(Duration::from_secs(1)).await;
+    let info = match crate::commands::cmd_check_version_update().await {
+        Ok(info) => info,
+        Err(e) => {
+            log::warn!("[Startup] Update check failed: {}", e);
+            return;
+        }
+    };
+    if !info.has_update {
+        log::info!("[Startup] No update available (current={}, latest={}).", info.current_version, info.latest_version);
+        return;
+    }
+    log::info!("[Startup] Update available: {} -> {}", info.current_version, info.latest_version);
+    for i in 0..30 {
+        if app_handle.get_webview_window("main").is_some() {
+            break;
+        }
+        sleep(Duration::from_millis(200)).await;
+    }
+    let update_label = "update-window";
+    if let Some(existing) = app_handle.get_webview_window(update_label) {
+        let _ = existing.close();
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while app_handle.get_webview_window(update_label).is_some() {
+            if std::time::Instant::now() >= deadline {
+                return;
+            }
+            sleep(Duration::from_millis(50)).await;
+        }
+    }
+    match UpdateWindowManager::create_update_window(&app_handle) {
+        Ok(()) => {
+            let exists = app_handle.get_webview_window(update_label).is_some();
+        }
+        Err(e) => {
+            log::warn!("[Startup] Failed to open update window: {}", e);
+        }
+    }
+}
 /// Recreate the main window when WebView crashes
 pub async fn recreate_main_window(app_handle: &tauri::AppHandle, label: &str) -> Result<tauri::WebviewWindow, String> {
     log::info!("Recreating main window: {}", label);
-    // Wait a moment to ensure cleanup
     sleep(Duration::from_millis(500)).await;
     let window = WebviewWindowBuilder::new(app_handle, label, WebviewUrl::App("index.html".into()))
         .title("HippoxOS")

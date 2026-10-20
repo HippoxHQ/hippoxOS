@@ -1,5 +1,4 @@
 import { Minus, Plus } from "lucide-react";
-
 /**
  * NumberInput
  */

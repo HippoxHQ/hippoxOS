@@ -558,6 +558,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_screen_record_material_for_session,
         subsystem::cmd_record_screen_record_material_for_session,
         subsystem::cmd_clear_screen_record_material_for_session,
+        subsystem::cmd_release_webcam_preview,
         // Video Player Commands
         subsystem::cmd_player_extract_frame_at_time,
         subsystem::cmd_player_extract_full_frame_at_time,

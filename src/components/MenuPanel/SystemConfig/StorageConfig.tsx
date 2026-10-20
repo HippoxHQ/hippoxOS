@@ -5,6 +5,7 @@ import { storageCommands } from "../../../command/config";
 import { filesCommands } from "../../../command/files";
 import { getDataPaths } from "../../../command/paths";
 import { HardDrive, FolderOpen, FileText, MessageSquare, Star, Package, Clock, Settings, Folder, ChevronDown, ChevronRight, Image as ImageIcon, Grid3x3, Database, Container, Globe, Video, Box, Code, Map as MapIcon, PieChart } from "lucide-react";
+import { NumberInput } from "../../NumberInput";
 interface StorageConfigProps {
   t: (key: string, params?: any) => string;
   onSave?: (config: any) => void;
@@ -494,7 +495,8 @@ const StorageConfig: React.FC<StorageConfigProps> = ({ t, onSave }) => {
                 minWidth: 0,
               }}
             >
-              <input type="number" style={{ ...inputStyle, maxWidth: "120px", flexShrink: 0 }} value={maxSizeValue} onChange={(e) => onMaxSizeChange(parseInt(e.target.value) || 500)} min={500} step={100} />
+              {/* Use NumberInput component for numeric max size input */}
+              <NumberInput value={String(maxSizeValue ?? "")} onChange={(val) => onMaxSizeChange(parseInt(val) || 500)} min={500} step={100} width={120} align="right" />
               <span
                 style={{
                   fontSize: "13px",
