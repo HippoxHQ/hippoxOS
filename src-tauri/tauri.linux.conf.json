@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "externalBin": [],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/lib/hippox/bin/ffmpeg": "bin/ffmpeg/ffmpeg",
+          "/usr/lib/hippox/bin/ffprobe": "bin/ffprobe/ffprobe",
+          "/usr/lib/hippox/bin/yt-dlp": "bin/yt-dlp/yt-dlp"
+        }
+      }
+    }
+  }
+}

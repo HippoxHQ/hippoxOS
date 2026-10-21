@@ -67,7 +67,7 @@ const SystemTrayWindow: React.FC = () => {
       }
     };
     loadData();
-    // Listen for theme changes broadcast from the main window. 
+    // Listen for theme changes broadcast from the main window.
     let unlistenTheme: (() => void) | undefined;
     (async () => {
       try {
@@ -137,6 +137,15 @@ const SystemTrayWindow: React.FC = () => {
     try {
       const info = await systemUpdateCommands.checkVersionUpdate();
       setVersionInfo(info);
+      if (info.has_update) {
+        try {
+          await windowsCommands.createUpdateWindow();
+        } catch (openErr) {
+          console.error("Failed to open update window:", openErr);
+          const msg = isZh ? "打开更新窗口失败，请稍后重试" : "Failed to open update window, please try again";
+          setUpdateError(msg);
+        }
+      }
       scheduleAutoReset();
     } catch (error) {
       console.error("Failed to check update:", error);
@@ -146,6 +155,9 @@ const SystemTrayWindow: React.FC = () => {
       setCheckingUpdate(false);
     }
   };
+  /**
+   * Kept for backward compatibility and for callers that still want an inline download flow. 
+   */
   const handleDownloadAndInstall = async () => {
     if (!versionInfo?.download_url) {
       setUpdateError(isZh ? "下载链接不可用" : "Download URL not available");
@@ -163,6 +175,18 @@ const SystemTrayWindow: React.FC = () => {
       setUpdateError(isZh ? "下载或安装失败" : "Download or install failed");
       setDownloading(false);
       scheduleAutoReset();
+    }
+  };
+  /**
+   * Open the update window instead of starting an inline download.
+   */
+  const handleOpenUpdateWindow = async () => {
+    try {
+      await windowsCommands.createUpdateWindow();
+    } catch (openErr) {
+      console.error("Failed to open update window:", openErr);
+      const msg = isZh ? "打开更新窗口失败，请稍后重试" : "Failed to open update window, please try again";
+      setUpdateError(msg);
     }
   };
   const handleMenuItemClick = (action: string) => {
@@ -352,7 +376,7 @@ const SystemTrayWindow: React.FC = () => {
         </div>
       );
     }
-    // Downloading
+    // Downloading (legacy inline flow, still supported if explicitly triggered)
     if (downloading) {
       return (
         <div style={{ ...S.menuItem, backgroundColor: rowBg, cursor: "default" }} onMouseEnter={() => setHoveredItem(item.id)} onMouseLeave={() => setHoveredItem(null)}>
@@ -399,7 +423,7 @@ const SystemTrayWindow: React.FC = () => {
             style={S.btnPrimary}
             onClick={(e) => {
               e.stopPropagation();
-              handleDownloadAndInstall();
+              handleOpenUpdateWindow();
             }}
           >
             <Download size={9} />
