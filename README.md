@@ -24,7 +24,7 @@ make LLM the operating system interpretation layer.
        width="200" height="54"
        style="width: 200px; height: 54px;" />
   </a>
-  <a href="https://www.founder.best?ref=founderbest&utm_source=founder.best&utm_medium=referral" target="_blank" rel="noopener noreferrer">
+  <a href="https://www.founder.best/products/hippoxos" target="_blank" rel="noopener noreferrer">
   <img src="https://www.founder.best/api/badge/featured/hippoxos" 
    style="width:200px;height:54px;"
    width="200" height="54"
