@@ -1,40 +1,12 @@
 //! Global LLM usage statistics ledger.
-//!
-//! This module owns the message-level token accounting for every
-//! Hippox-backed LLM call in the app. Records are appended from three
-//! sources:
-//!   - Chat:          any chat subsystem routed through
-//!                    `cmd_send_chat_message_async`
-//!   - ScheduledTask: user-defined cron tasks executed by
-//!                    `ScheduledTaskExecutor::execute`
-//!   - Generate3D:    the 3D scene generator in
-//!                    `subsystem::generate_3d::process_generate_3d_task`
-//!
-//! # Keying
-//! Each LLM call produces exactly one record, keyed by
-//! `(task_id, role)`. `task_id` is the hippox core task id returned by
-//! `Hippox::submit`, guaranteed globally unique.
-//!
-//! # Subsystem attribution
-//! Records produced by the chat pipeline carry a `subsystem` identifier
-//! (General / Finance / Map / CodeEditor / Video / SandBox3D / BlockChain
-//! / ImageEditor / PixelEditor / DataBaseClient / DockerClient / ApiClient)
-//! so per-subsystem statistics can be derived from a single ledger.
-//!
-//! # Submit-time snapshot
-//! The provider and model of the default LLM instance are captured the
-//! moment `Hippox::submit` returns (i.e. before the user can switch
-//! instances). A "pending" llm record is created immediately with those
-//! values, and later patched with the final content and token counts once
-//! `wait_task` completes.
-//!
-//! # Storage layout
-//! Each subsystem owns its own ledger file:
+//! 
+//! share the same file:
 //!   - General:        `{General history dir}/statistics.json`
 //!   - Finance:        `{Finance history dir}/statistics.json`
 //!   - Map:            `{Map history dir}/statistics.json`
 //!   - CodeEditor:     `{CodeEditor history dir}/statistics.json`
 //!   - Video:          `{Video history dir}/statistics.json`
+//!   - Audio:          `{Video history dir}/statistics.json`
 //!   - SandBox3D:      `{SandBox3D history dir}/statistics.json`
 //!   - BlockChain:     `{BlockChain history dir}/statistics.json`
 //!   - ImageEditor:    `{ImageEditor history dir}/statistics.json`
@@ -49,7 +21,7 @@
 //!   "total_input_tokens": 0,
 //!   "total_output_tokens": 0,
 //!   "total_task_count": 0,
-//!   "records": [ { "task_id", "session_id", "subsystem", "role", ... }, ... ]
+//!   "records": [ { "task_id", "session_id", "subsystem", "role", "nle_edit_mode", ... }, ... ]
 //! }
 //! ```
 //!
@@ -62,12 +34,17 @@ use crate::commands::{
     get_map_history_statistics, get_sandbox3d_history_statistics, get_video_editing_system_history_statistics,
 };
 use crate::commons::FileUtils;
-use crate::subsystem::{SubSystemEnum, get_apiclient_history_statistics, get_databaseclient_history_statistics, get_dockerclient_history_statistics, get_imageeditor_history_statistics, get_pixeleditor_history_statistics};
+use crate::subsystem::videoeditor::NLEEditMode;
+use crate::subsystem::{
+    get_apiclient_history_statistics, get_databaseclient_history_statistics, get_dockerclient_history_statistics, get_imageeditor_history_statistics,
+    get_pixeleditor_history_statistics, SubSystemEnum,
+};
 use once_cell::sync::OnceCell;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::command;
@@ -82,11 +59,6 @@ fn now_millis() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64
 }
 /// Resolve the on-disk statistics file for a given subsystem.
-///
-/// Every subsystem owns a separate `statistics.json` under its history
-/// directory. `ScheduledTask` / `Generate3D` records default to
-/// `SubSystemEnum::General`, so they are stored under the General history
-/// directory as well.
 fn statistics_path_for(subsystem: SubSystemEnum) -> PathBuf {
     match subsystem {
         SubSystemEnum::General => get_general_history_statistics(),
@@ -94,6 +66,7 @@ fn statistics_path_for(subsystem: SubSystemEnum) -> PathBuf {
         SubSystemEnum::Map => get_map_history_statistics(),
         SubSystemEnum::CodeEditor => get_codeeditor_history_statistics(),
         SubSystemEnum::Video => get_video_editing_system_history_statistics(),
+        SubSystemEnum::Audio => get_video_editing_system_history_statistics(),
         SubSystemEnum::SandBox3D => get_sandbox3d_history_statistics(),
         SubSystemEnum::BlockChain => get_blockchain_history_statistics(),
         SubSystemEnum::ImageEditor => get_imageeditor_history_statistics(),
@@ -104,16 +77,16 @@ fn statistics_path_for(subsystem: SubSystemEnum) -> PathBuf {
     }
 }
 /// All subsystems that own a ledger. Used for iteration / migration.
-fn all_subsystems() -> [SubSystemEnum; 12] {
+fn all_subsystems() -> [SubSystemEnum; 13] {
     [
         SubSystemEnum::General,
         SubSystemEnum::Finance,
         SubSystemEnum::Map,
         SubSystemEnum::CodeEditor,
         SubSystemEnum::Video,
+        SubSystemEnum::Audio,
         SubSystemEnum::SandBox3D,
         SubSystemEnum::BlockChain,
-        // New subsystems
         SubSystemEnum::ImageEditor,
         SubSystemEnum::PixelEditor,
         SubSystemEnum::DataBaseClient,
@@ -138,10 +111,6 @@ impl Default for ChatSource {
     }
 }
 /// One message-level record in the statistics ledger.
-///
-/// A single LLM call produces one record. Provider / model are captured at
-/// submit time and never mutated afterwards; only `content`, `input_tokens`
-/// and `output_tokens` are patched once the task completes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatStatisticsRecord {
     /// Hippox core task id (or scheduled task id for `ScheduledTask`).
@@ -172,6 +141,9 @@ pub struct ChatStatisticsRecord {
     /// Workflow mode used for the exchange, e.g. "ReAct".
     #[serde(default)]
     pub workflow_mode: String,
+    /// NLE editing mode captured at submit time (`"video"` / `"audio"`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nle_edit_mode: Option<NLEEditMode>,
     /// Input tokens consumed by this call, filled in when the task completes.
     #[serde(default)]
     pub input_tokens: u64,
@@ -184,6 +156,7 @@ pub struct ChatStatisticsRecord {
 impl ChatStatisticsRecord {
     /// Build a record. Provider / model are the submit-time snapshot;
     /// content and tokens are usually left empty here and patched later.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         task_id: &str,
         session_id: &str,
@@ -207,12 +180,16 @@ impl ChatStatisticsRecord {
             model: model.to_string(),
             content: content.to_string(),
             workflow_mode: workflow_mode.to_string(),
+            // Default: no NLE edit-mode attribution. The video / audio editor
+            // call sites set the field explicitly via `with_nle_edit_mode`.
+            nle_edit_mode: None,
             input_tokens,
             output_tokens,
             created_at: now_millis(),
         }
     }
     /// Build an "llm" record.
+    #[allow(clippy::too_many_arguments)]
     pub fn llm(
         task_id: &str,
         session_id: &str,
@@ -226,6 +203,11 @@ impl ChatStatisticsRecord {
         output_tokens: u64,
     ) -> Self {
         Self::new(task_id, session_id, subsystem, "llm", source, content, model, provider, workflow_mode, input_tokens, output_tokens)
+    }
+    /// Attach an NLE editing-mode attribution to the record.
+    pub fn with_nle_edit_mode(mut self, nle_edit_mode: Option<NLEEditMode>) -> Self {
+        self.nle_edit_mode = nle_edit_mode;
+        self
     }
 }
 /// Patch applied to an existing record when the task completes.
@@ -298,6 +280,28 @@ impl ChatStatistics {
         let new_output = record.output_tokens as i64;
         Some((new_input - old_input, new_output - old_output))
     }
+    /// Return a new ledger whose records are all accepted by `keep`.
+    pub fn filter_records<F>(&self, keep: F) -> ChatStatistics
+    where
+        F: Fn(&ChatStatisticsRecord) -> bool,
+    {
+        let filtered: Vec<ChatStatisticsRecord> = self.records.iter().filter(|r| keep(r)).cloned().collect();
+        let mut ledger = ChatStatistics::empty();
+        let mut seen_tasks: HashSet<String> = HashSet::new();
+        let mut total_input = 0u64;
+        let mut total_output = 0u64;
+        for record in &filtered {
+            total_input = total_input.saturating_add(record.input_tokens);
+            total_output = total_output.saturating_add(record.output_tokens);
+            seen_tasks.insert(record.task_id.clone());
+        }
+        ledger.version = self.version;
+        ledger.records = filtered;
+        ledger.total_input_tokens = total_input;
+        ledger.total_output_tokens = total_output;
+        ledger.total_task_count = seen_tasks.len() as u64;
+        ledger
+    }
 }
 // Cache manager (memory is the source of truth)
 struct StatisticsCacheManager {
@@ -309,8 +313,6 @@ struct StatisticsCacheManager {
 impl StatisticsCacheManager {
     fn new() -> Self {
         let (statistics_tx, mut statistics_rx) = mpsc::unbounded_channel::<SubSystemEnum>();
-        // Load every subsystem ledger, then migrate any cross-subsystem
-        // records that were historically written into the General file.
         let statistics = Arc::new(RwLock::new(Self::load_all_statistics_from_disk()));
         Self::migrate_legacy_general_records(&statistics);
         {
@@ -370,8 +372,14 @@ impl StatisticsCacheManager {
     fn load_all_statistics_from_disk() -> HashMap<SubSystemEnum, ChatStatistics> {
         let mut map = HashMap::new();
         for subsystem in all_subsystems() {
+            if subsystem == SubSystemEnum::Audio {
+                continue;
+            }
             map.insert(subsystem, Self::load_statistics_for_subsystem(subsystem));
         }
+        // Seed the Audio ledger from the Video ledger (same file on disk).
+        let video_ledger = map.get(&SubSystemEnum::Video).cloned().unwrap_or_else(ChatStatistics::empty);
+        map.insert(SubSystemEnum::Audio, video_ledger);
         map
     }
     /// Load a single subsystem ledger from its on-disk file.
@@ -477,6 +485,10 @@ impl StatisticsCacheManager {
     }
     /// Persist a single subsystem ledger to its on-disk file.
     fn save_statistics_to_disk(subsystem: SubSystemEnum, stats: &ChatStatistics) -> Result<(), String> {
+        // Audio shares the Video file: skip persisting it directly.
+        if subsystem == SubSystemEnum::Audio {
+            return Ok(());
+        }
         let path = statistics_path_for(subsystem);
         if let Some(parent) = path.parent() {
             FileUtils::ensure_dir(parent).map_err(|e| format!("Failed to create statistics dir: {}", e))?;
@@ -539,6 +551,14 @@ impl StatisticsCacheManager {
     fn statistics_snapshot_for(&self, subsystem: SubSystemEnum) -> ChatStatistics {
         self.statistics.read().get(&subsystem).cloned().unwrap_or_else(ChatStatistics::empty)
     }
+    /// Snapshot the shared Video / Audio ledger filtered by `nle_edit_mode`.
+    fn statistics_snapshot_for_nle(&self, nle_edit_mode: NLEEditMode) -> ChatStatistics {
+        let ledger = self.statistics.read().get(&SubSystemEnum::Video).cloned().unwrap_or_else(ChatStatistics::empty);
+        match nle_edit_mode {
+            NLEEditMode::Video => ledger.filter_records(|r| matches!(r.nle_edit_mode, Some(NLEEditMode::Video) | None)),
+            NLEEditMode::Audio => ledger.filter_records(|r| matches!(r.nle_edit_mode, Some(NLEEditMode::Audio))),
+        }
+    }
     /// Snapshot and merge every subsystem ledger into one aggregate.
     fn statistics_snapshot_merged(&self) -> ChatStatistics {
         let guard = self.statistics.read();
@@ -589,8 +609,14 @@ pub fn cmd_get_statistics() -> Result<ChatStatistics, String> {
 #[command]
 pub fn cmd_get_statistics_by_subsystem(subsystem: String) -> Result<ChatStatistics, String> {
     log::debug!("cmd_get_statistics_by_subsystem - START: subsystem={}", subsystem);
-    let subsystem_enum = SubSystemEnum::from_str(&subsystem)?;
-    Ok(statistics_cache().statistics_snapshot_for(subsystem_enum))
+    match subsystem.to_lowercase().as_str() {
+        "audio" => Ok(statistics_cache().statistics_snapshot_for_nle(NLEEditMode::Audio)),
+        "video" => Ok(statistics_cache().statistics_snapshot_for_nle(NLEEditMode::Video)),
+        _ => {
+            let subsystem_enum = SubSystemEnum::from_str(&subsystem)?;
+            Ok(statistics_cache().statistics_snapshot_for(subsystem_enum))
+        }
+    }
 }
 /// Rebuild every subsystem ledger from its current in-memory snapshot.
 #[command]
@@ -601,6 +627,15 @@ pub fn cmd_rebuild_statistics() -> Result<ChatStatistics, String> {
     {
         let mut guard = cache_ref.statistics.write();
         for subsystem in all_subsystems() {
+            // Audio shares the Video ledger; rebuild it from the (already
+            // rebuilt) Video records to keep the two views consistent.
+            if subsystem == SubSystemEnum::Audio {
+                let video_records = guard.get(&SubSystemEnum::Video).map(|l| l.records.clone()).unwrap_or_default();
+                let rebuilt = StatisticsCacheManager::rebuild_ledger(video_records);
+                guard.insert(SubSystemEnum::Audio, rebuilt.clone());
+                rebuilt_subsystems.push((subsystem, rebuilt));
+                continue;
+            }
             let ledger = guard.entry(subsystem).or_insert_with(ChatStatistics::empty);
             let rebuilt = StatisticsCacheManager::rebuild_ledger(ledger.records.clone());
             *ledger = rebuilt.clone();

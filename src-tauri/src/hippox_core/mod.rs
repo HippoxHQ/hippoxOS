@@ -1,7 +1,9 @@
 pub mod callback;
+pub mod chat;
 pub mod statistics;
 use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
 pub use callback::*;
+pub use chat::*;
 use hippox::{
     build_audio_config, build_image_config, build_video_config, AudioLLMConfig, AudioModelProvider, ChatModelProvider, Hippox, HippoxConfig,
     IdentityInformation, ImageLLMConfig, ImageModelProvider, VideoLLMConfig, VideoModelProvider,

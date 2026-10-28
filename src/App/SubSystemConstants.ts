@@ -1,7 +1,7 @@
 /**
  * Subsystem types supported by the application
  */
-export type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "video" | "sandbox3d" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
+export type SubsystemType = "general" | "chart" | "map" | "codeeditor" | "video" | "audioEditor" | "sandbox3d" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
 /**
  * Subsystem ID constants
  */
@@ -11,6 +11,7 @@ export const SUBSYSTEM = {
     MAP: "map",
     CODEEDITOR: "codeeditor",
     VIDEO: "video",
+    AUDIO_EDITOR: "audioEditor",
     SANDBOX3D: "sandbox3d",
     BLOCKCHAIN: "blockchain",
     // New subsystems
@@ -31,6 +32,7 @@ export const SUBSYSTEM_TO_SIDEBAR_ID: Record<SubsystemValue, string> = {
     [SUBSYSTEM.MAP]: "mapChat",
     [SUBSYSTEM.CODEEDITOR]: "codeEditorChat",
     [SUBSYSTEM.VIDEO]: "videoEditor",
+    [SUBSYSTEM.AUDIO_EDITOR]: "audioEditor",
     [SUBSYSTEM.SANDBOX3D]: "sandbox3d",
     [SUBSYSTEM.BLOCKCHAIN]: "blockchain",
     // New subsystems
@@ -49,6 +51,7 @@ export const SUBSYSTEM_TO_PANEL: Record<SubsystemValue, string> = {
     [SUBSYSTEM.MAP]: "mapChat",
     [SUBSYSTEM.CODEEDITOR]: "codeEditorChat",
     [SUBSYSTEM.VIDEO]: "videoEditor",
+    [SUBSYSTEM.AUDIO_EDITOR]: "audioEditor",
     [SUBSYSTEM.SANDBOX3D]: "sandbox3d",
     [SUBSYSTEM.BLOCKCHAIN]: "blockchain",
     // New subsystems

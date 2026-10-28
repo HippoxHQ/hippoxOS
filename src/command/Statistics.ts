@@ -13,6 +13,13 @@ export interface ChatStatisticsRecord {
     model: string;
     content: string;
     workflow_mode: string;
+    /**
+     * NLE editing mode captured at submit time (`"video"` / `"audio"`).
+     * Only set for records produced by the Video subsystem (the shared
+     * video / audio editor); absent for every other subsystem and for
+     * records written by older builds.
+     */
+    nle_edit_mode?: "video" | "audio" | null;
     input_tokens: number;
     output_tokens: number;
     created_at: number;
@@ -25,8 +32,23 @@ export interface ChatStatistics {
     total_task_count: number;
     records: ChatStatisticsRecord[];
 }
-/** Canonical subsystem keys, mirroring the backend SubSystemEnum. */
-export type SubsystemKey = "general" | "finance" | "map" | "code_editor" | "video" | "sandbox3d" | "block_chain";
+/**
+ * Canonical subsystem keys, mirroring the backend SubSystemEnum.
+ *
+ * `audio` is a logical subsystem backed by the shared Video ledger. The
+ * backend `cmd_get_statistics_by_subsystem` dispatches on the argument:
+ *   - `"video"` => records with `nle_edit_mode == "video"` (+ legacy untagged)
+ *   - `"audio"` => records with `nle_edit_mode == "audio"`
+ */
+export type SubsystemKey =
+    | "general"
+    | "finance"
+    | "map"
+    | "code_editor"
+    | "video"
+    | "audio"
+    | "sandbox3d"
+    | "block_chain";
 /** Map of subsystem key -> that subsystem's chat statistics ledger. */
 export type SubsystemStatisticsMap = Partial<Record<SubsystemKey, ChatStatistics>>;
 /** One completed image generation task as recorded in statistics.json. */
@@ -106,8 +128,22 @@ export interface MediaGenerationStatistics {
     audio: GenerateAudioStatistics | null;
     video: GenerateVideoStatistics | null;
 }
-/** Canonical subsystem keys, mirroring the backend SubSystemEnum. */
-const SUBSYSTEM_KEYS: SubsystemKey[] = ["general", "finance", "map", "code_editor", "video", "sandbox3d", "block_chain"];
+/**
+ * Canonical subsystem keys, mirroring the backend SubSystemEnum.
+ *
+ * `video` and `audio` share the same on-disk Video ledger; the backend
+ * splits them by `nle_edit_mode`, so both are requested independently here.
+ */
+const SUBSYSTEM_KEYS: SubsystemKey[] = [
+    "general",
+    "finance",
+    "map",
+    "code_editor",
+    "video",
+    "audio",
+    "sandbox3d",
+    "block_chain",
+];
 export const statisticsCommands = {
     /**
      * Read the merged statistics ledger across every subsystem.
@@ -116,7 +152,12 @@ export const statisticsCommands = {
         return await invoke<ChatStatistics>("cmd_get_statistics");
     },
     /**
-     * Read the statistics ledger of a single subsystem from its own file.
+     * Read the statistics ledger of a single subsystem.
+     *
+     * `"video"` returns the Video ledger records tagged
+     * `nle_edit_mode == "video"` (plus legacy untagged records).
+     * `"audio"` returns the same ledger filtered to
+     * `nle_edit_mode == "audio"`.
      */
     getStatisticsBySubsystem: async (subsystem: string): Promise<ChatStatistics> => {
         return await invoke<ChatStatistics>("cmd_get_statistics_by_subsystem", { subsystem });
@@ -152,7 +193,7 @@ export const statisticsCommands = {
                     console.warn(`Failed to load statistics for subsystem ${subsystem}:`, e);
                     return [subsystem, null] as const;
                 }
-            })
+            }),
         );
         const result: SubsystemStatisticsMap = {};
         for (const [key, value] of entries) {

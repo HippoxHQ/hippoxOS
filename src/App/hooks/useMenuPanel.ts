@@ -22,9 +22,9 @@ export type ContentPanelView =
   | "chartChat"
   | "mapChat"
   | "videoEditor"
+  | "audioEditor"
   | "sandbox3d"
   | "blockchain"
-  // New subsystem pages
   | "imageEditor"
   | "pixelEditor"
   | "databaseClient"
@@ -40,6 +40,7 @@ const INITIAL_PANEL_WHITELIST: ContentPanelView[] = [
   "chartChat",
   "mapChat",
   "videoEditor",
+  "audioEditor",
   "sandbox3d",
   "blockchain",
   "imageEditor",
@@ -130,6 +131,7 @@ export function useMenuPanel() {
       "mapChat",
       "generalChat",
       "videoEditor",
+      "audioEditor",
       "sandbox3d",
       "blockchain",
       "imageEditor",

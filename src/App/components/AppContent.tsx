@@ -71,6 +71,8 @@ declare global {
     __codeEditorInstance: any;
     // Global video editor instance for cleanup
     __videoEditorInstance: any;
+    // Global audio editor instance for cleanup
+    __audioEditorInstance: any;
     // Global sandbox3d instance for cleanup
     __sandbox3dInstance: any;
     // Global general chat instance for cleanup
@@ -108,6 +110,7 @@ const PAGE_TYPES = {
   MAP_CHAT: "mapChat",
   CODE_EDITOR: "codeEditorChat",
   VIDEO_EDITOR: "videoEditor",
+  AUDIO_EDITOR: "audioEditor",
   SANDBOX_3D: "sandbox3d",
   BLOCKCHAIN: "blockchain",
   // New subsystem pages
@@ -137,6 +140,7 @@ const SUBSYSTEM_PAGES: PageType[] = [
   PAGE_TYPES.MAP_CHAT,
   PAGE_TYPES.CODE_EDITOR,
   PAGE_TYPES.VIDEO_EDITOR,
+  PAGE_TYPES.AUDIO_EDITOR,
   PAGE_TYPES.SANDBOX_3D,
   PAGE_TYPES.BLOCKCHAIN,
   // New subsystem pages
@@ -190,6 +194,15 @@ function cleanupPageResources(pageKey: PageType): void {
             window.__videoEditorInstance.destroy?.();
           } catch (e) {}
           window.__videoEditorInstance = null;
+        }
+        break;
+      case PAGE_TYPES.AUDIO_EDITOR:
+        // Cleanup audio editor instance
+        if (window.__audioEditorInstance) {
+          try {
+            window.__audioEditorInstance.destroy?.();
+          } catch (e) {}
+          window.__audioEditorInstance = null;
         }
         break;
       case PAGE_TYPES.SANDBOX_3D:
@@ -515,7 +528,6 @@ export function AppContent({
   const [isFuncPanelResizeHover, setIsFuncPanelResizeHover] = useState(false);
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
   // Pending session requested via the OPEN_SUBSYSTEM event.
-  // Holds the target subsystem and the session id to open inside it.
   const [pendingSession, setPendingSession] = useState<{ subsystem: string; sessionId: string } | null>(null);
   // Refs for page switching and resize
   const prevContentPanelRef = useRef<ContentPanelView | null>(null);
@@ -526,13 +538,14 @@ export function AppContent({
   const dragStartWidth = useRef(0);
   /**
    * Listen for the OPEN_SUBSYSTEM event and switch to the target subsystem panel.
-   * When a session id is provided, store it in pendingSession so the target
-   * subsystem page can open that session via its `initSessionId` prop.
    */
   useEffect(() => {
     const cleanup = onOpenSubsystem(({ subsystem, sessionId }) => {
       if (!subsystem) return;
-      const target = getSubsystemEventInfo(subsystem);
+      // Audio editor keeps its own panel id so the page can select the audio
+      // editing mode.
+      const normalizedSubsystem = subsystem === "audioEditor" ? "audioEditor" : subsystem;
+      const target = getSubsystemEventInfo(normalizedSubsystem);
       if (!target) {
         // Unknown subsystem: fall back to general chat panel.
         onMenuClick("generalChat");
@@ -542,7 +555,7 @@ export function AppContent({
       onMenuClick(target.panel);
       // Remember the session id so the subsystem page can open it on mount.
       if (sessionId) {
-        setPendingSession({ subsystem, sessionId });
+        setPendingSession({ subsystem: normalizedSubsystem, sessionId });
       }
     });
     return cleanup;
@@ -836,6 +849,7 @@ export function AppContent({
     const isChartPage = currentContentPanel === "chartChat";
     const isCodeEditorChat = currentContentPanel === "codeEditorChat";
     const isVideoEditor = currentContentPanel === "videoEditor";
+    const isAudioEditor = currentContentPanel === "audioEditor";
     const isSandbox3d = currentContentPanel === "sandbox3d";
     const isBlockchain = currentContentPanel === "blockchain";
     // New subsystem page flags
@@ -948,7 +962,9 @@ export function AppContent({
         />,
       );
     } else if (isVideoEditor) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} />);
+      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} nleEditMode="video" />);
+    } else if (isAudioEditor) {
+      contentElement = renderSubsystemPage(PAGE_TYPES.AUDIO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("audioEditor", "audioediting")} nleEditMode="audio" />);
     } else if (isSandbox3d) {
       contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("sandbox3d")} />);
     } else if (isBlockchain) {

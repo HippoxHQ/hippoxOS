@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { taskManager } from "../core/TaskManager";
 import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
 import { sessionCommands } from "../command/session/general";
@@ -21,6 +22,8 @@ import { useTheme } from "./hooks/useTheme";
 import { useMenuPanel, ContentPanelView } from "./hooks/useMenuPanel";
 import { APP_WINDOW_EVENTS, getSubsystemEventInfo } from "./AppWindowEventManager";
 import "../core/TaskPool";
+import { videoEditorStateManager } from "../subsystem/VideoEditor/global";
+import { clearVideoEditorAllMemory } from "../subsystem/VideoEditor/MenoryManager";
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);
@@ -50,6 +53,30 @@ function App() {
     (subView) => switchMenuPanel("settings", subView),
   );
   useDirectoryEvents();
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    (async () => {
+      try {
+        const un = await listen<{ window_label: string; session_id: string | null }>("media:window-closed", (event) => {
+          console.debug("[App] media:window-closed received:", event.payload);
+          videoEditorStateManager.clear();
+          clearVideoEditorAllMemory();
+        });
+        if (disposed) {
+          un();
+        } else {
+          unlisten = un;
+        }
+      } catch (err) {
+        console.error("[App] failed to listen for media:window-closed:", err);
+      }
+    })();
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
   /**
    * Listen for search new session event using APP_WINDOW_EVENTS
    */
@@ -122,6 +149,7 @@ function App() {
       view === "chartChat" ||
       view === "mapChat" ||
       view === "videoEditor" ||
+      view === "audioEditor" ||
       view === "sandbox3d" ||
       view === "blockchain" ||
       view === "imageEditor" ||

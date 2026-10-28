@@ -1,5 +1,11 @@
-use crate::windows::{WindowIdentifier, WindowType};
-use tauri::{AppHandle, Manager, Runtime, WebviewWindowBuilder};
+use crate::{
+    subsystem::emit_media_window_closed,
+    windows::{WindowIdentifier, WindowType},
+};
+use log::debug;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tauri::{AppHandle, Manager, Runtime, WebviewWindowBuilder, WindowEvent};
 pub struct MainWindowManager;
 impl MainWindowManager {
     /// Create an additional main app window.
@@ -25,7 +31,29 @@ impl MainWindowManager {
         } else {
             window_builder = window_builder.decorations(false);
         }
-        let _window = window_builder.build()?;
+        let window = window_builder.build()?;
+        let subsystem_for_event = subsystem.clone();
+        let label_for_event = window_label.clone();
+        let app_for_event = app_handle.clone();
+        let media_closed_emitted = Arc::new(AtomicBool::new(false));
+        window.on_window_event(move |event| {
+            let is_media_panel = matches!(subsystem_for_event.as_deref(), Some("videoEditor") | Some("audioEditor"));
+            let should_cleanup = match event {
+                WindowEvent::CloseRequested { .. } => true,
+                WindowEvent::Destroyed => true,
+                WindowEvent::Focused(false) => true,
+                _ => false,
+            };
+            if should_cleanup && is_media_panel {
+                if !media_closed_emitted.swap(true, Ordering::SeqCst) {
+                    debug!("media window closing, emitting media:window-closed: {} ({:?})", label_for_event, subsystem_for_event);
+                    emit_media_window_closed(&app_for_event, &label_for_event, None);
+                }
+            }
+            if let WindowEvent::Focused(true) = event {
+                media_closed_emitted.store(false, Ordering::SeqCst);
+            }
+        });
         Ok(window_label)
     }
     /// Compute a centered position for a window of the given LOGICAL size.

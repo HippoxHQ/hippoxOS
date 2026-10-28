@@ -3385,9 +3385,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpegx"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7321846a5d3cfda82276f5b5be208d70e7529f3658094470113337e2fcc60907"
+checksum = "53421441556af3bfcb792124bd7c35358add3599c253d505de342daa51e765f2"
 dependencies = [
  "base64 0.23.1",
  "chrono",
@@ -13791,9 +13791,9 @@ dependencies = [
 
 [[package]]
 name = "ytdlp"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3734c9fe00dcc2a5340c12413490519fecc1b30479f3569fb89bb6921bd04a52"
+checksum = "09ca125ff1fcbcc6bb294b544739298ac17df62d4a1f5a372e4f4a987e640a03"
 dependencies = [
  "log",
  "serde_json",

@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 /// Which chat subsystem a message belongs to.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -11,6 +11,7 @@ pub enum SubSystemEnum {
     Map,
     CodeEditor,
     Video,
+    Audio,
     SandBox3D,
     BlockChain,
     ImageEditor,
@@ -28,6 +29,7 @@ impl SubSystemEnum {
             SubSystemEnum::Map => "map",
             SubSystemEnum::CodeEditor => "code_editor",
             SubSystemEnum::Video => "video",
+            SubSystemEnum::Audio => "audio",
             SubSystemEnum::SandBox3D => "sandbox3d",
             SubSystemEnum::BlockChain => "block_chain",
             SubSystemEnum::ImageEditor => "image_editor",
@@ -45,6 +47,7 @@ impl SubSystemEnum {
             "map" => Ok(SubSystemEnum::Map),
             "code_editor" => Ok(SubSystemEnum::CodeEditor),
             "video" => Ok(SubSystemEnum::Video),
+            "audio" => Ok(SubSystemEnum::Audio),
             "sandbox3d" => Ok(SubSystemEnum::SandBox3D),
             "block_chain" => Ok(SubSystemEnum::BlockChain),
             "image_editor" => Ok(SubSystemEnum::ImageEditor),

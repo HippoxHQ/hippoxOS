@@ -92,6 +92,7 @@ import {
   Container,
   Webhook,
   HomeIcon,
+  Music,
 } from "lucide-react";
 interface IconProps {
   className?: string;
@@ -261,6 +262,7 @@ export const SplitRightIcon: React.FC<IconProps> = ({ className, size = 18 }) =>
 );
 export const MaterialFloatingIcon: React.FC<IconProps> = ({ className, size = 20 }) => <Grid2X2 className={className} size={size} />;
 export const ToolFloatingIcon: React.FC<IconProps> = ({ className, size = 20 }) => <Wrench className={className} size={size} />;
+export const MusicNoteIcon: React.FC<IconProps> = ({ className, size = 18 }) => <Music className={className} size={size} />;
 export const iconMap: Record<string, React.FC<IconProps>> = {
   videoEditor: VideoEditorIcon,
   sandbox3d: Sandbox3dIcon,
@@ -340,4 +342,5 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   dockerClient: DockerClientIcon,
   apiClient: ApiClientIcon,
   home: HomeIcon,
+  audioEditor: MusicNoteIcon,
 };

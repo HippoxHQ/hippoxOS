@@ -5,10 +5,11 @@ import { taskManager } from "../../../core/TaskManager";
 import { TaskInfo, UploadFile, TaskStatusEnum, SessionDomain } from "../../../core/types";
 import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/types";
 import { workspaceCommands } from "../../../command/workspace";
-import { videoSessionCommands } from "../../../command/session/videoeditor";
+import { videoSessionCommands, } from "../../../command/session/videoeditor";
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getVideoEditorSystemPrompt } from "../../../subsystem/VideoEditor/llm/prompts";
+import { NLEEditMode } from "../../../subsystem/VideoEditor/types";
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
@@ -24,6 +25,8 @@ const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | n
 export function useVideoSession(
     language: Language,
     isConfigLoaded: boolean,
+    // Required: the editing mode this session hook belongs to.
+    nleEditMode: NLEEditMode,
 ) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [currentWorkflowMode, setCurrentWorkflowMode] = useState<string>("ReAct");
@@ -73,7 +76,7 @@ export function useVideoSession(
     }, [currentSessionId, isLoading, taskManagerVersion]);
     useEffect(() => {
         if (isConfigLoaded) {
-            videoSessionCommands.listVideoSessions()
+            videoSessionCommands.listVideoSessions(nleEditMode)
                 .then(list => {
                     if (list.length > 0) {
                         const sorted = list.sort((a, b) => {
@@ -134,21 +137,12 @@ export function useVideoSession(
             audioSourcePaths,
             imageSourcePaths,
             textSourcePaths,
+            // Pass the editing mode so the backend stores it on the session.
+            nleEditMode,
         );
-    }, [currentWorkflowMode]);
+    }, [currentWorkflowMode, nleEditMode]);
     /**
      * Create a new video session
-     *
-     * Supports three creation methods:
-     * 1. file - Import from local file
-     * 2. download - Import from downloaded file (same logic as file)
-     * 3. empty - Create an empty project
-     *
-     * For file and download types, automatically detects the file type
-     * (video/audio/image/text) and creates the corresponding session,
-     * loading the file onto the timeline.
-     *
-     * For empty type, creates an empty project without loading any files.
      *
      * @param filePath - File path (optional)
      * @param fileType - File type: "file" | "empty" | "download"
@@ -366,6 +360,7 @@ export function useVideoSession(
             const systemPrompt = await getVideoEditorSystemPrompt(
                 language as 'zh' | 'en',
                 finalSessionId,
+                nleEditMode,
                 workspacePath
             );
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
@@ -455,7 +450,9 @@ export function useVideoSession(
         }
         setCurrentSessionId(sessionId);
         try {
-            const config = await videoSessionCommands.loadVideoSessionConfig(sessionId);
+            // Pass the editing mode so the backend resolves the config for
+            // the correct mode.
+            const config = await videoSessionCommands.loadVideoSessionConfig(sessionId, nleEditMode);
             if (config && config.video_file) {
                 window.dispatchEvent(new CustomEvent("video-loaded", {
                     detail: { path: config.video_file, title: config.title || "" }
@@ -464,7 +461,7 @@ export function useVideoSession(
         } catch (error) {
             console.error("Failed to load video config:", error);
         }
-    }, [currentSessionId]);
+    }, [currentSessionId, nleEditMode]);
     const shouldShowWelcome = useCallback(() => {
         if (isLoading) return true;
         if (!currentSessionId) return true;

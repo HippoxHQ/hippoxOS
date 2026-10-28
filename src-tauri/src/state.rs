@@ -1,8 +1,6 @@
 use crate::commands::types::{StepInfo, TaskInfo};
 use crate::commands::{load_config_from_file, write_log, HIPPOX_APP_CONFIG};
 use crate::scheduled_task_pool::TaskPool;
-use crate::sessions::chat::ExecutionLog;
-use crate::sessions::chat::LogMessages;
 use crate::workspace::get_default_workspace;
 use hippox::ChatModelProvider;
 use hippox::{Hippox, WorkflowMode};
@@ -35,7 +33,7 @@ struct StoredStep {
 }
 #[derive(Clone)]
 pub struct AppState {
-    pub logs: Arc<Mutex<Vec<ExecutionLog>>>,
+    pub logs: Arc<Mutex<Vec<crate::ExecutionLog>>>,
     pub language: Arc<Mutex<String>>,
     pub tasks: Arc<Mutex<HashMap<String, StoredTask>>>,
     pub memcontext: Arc<Mutex<Option<Arc<MemContext>>>>,
@@ -88,7 +86,7 @@ impl AppState {
     }
     pub async fn add_log(&self, level: String, message: String, details: Option<String>, duration: Option<u64>) {
         let mut logs = self.logs.lock().await;
-        logs.push(ExecutionLog {
+        logs.push(crate::ExecutionLog {
             id: Uuid::new_v4().to_string(),
             timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
             level: level.clone(),
@@ -101,16 +99,16 @@ impl AppState {
         }
         let _ = write_log(&level, &message, details.as_deref());
     }
-    pub async fn get_logs(&self) -> Vec<ExecutionLog> {
+    pub async fn get_logs(&self) -> Vec<crate::ExecutionLog> {
         self.logs.lock().await.clone()
     }
     pub async fn clear_logs(&self) {
         let mut logs = self.logs.lock().await;
         logs.clear();
     }
-    pub async fn get_log_messages(&self) -> LogMessages {
+    pub async fn get_log_messages(&self) -> crate::LogMessages {
         let lang = self.get_language().await;
-        LogMessages::get()
+        crate::LogMessages::get()
     }
     pub async fn create_task(&self, task_id: String, session_id: String, user_input: String) {
         let now = chrono::Local::now().to_rfc3339();

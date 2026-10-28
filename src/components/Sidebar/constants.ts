@@ -7,6 +7,10 @@ export const topMenuItems: MenuItemWithSection[] = [];
 topMenuItems.push({ id: "home", icon: "home", label: "menu.home", section: "main" });
 if (SubSytemSwitch.generalChat) { topMenuItems.push({ id: "generalChat", icon: "chat", label: "menu.general", section: "main" }); }
 if (SubSytemSwitch.videoEditor) { topMenuItems.push({ id: "videoEditor", icon: "videoEditor", label: "menu.videoEditor", section: "main" }); }
+if (SubSytemSwitch.audioEditor) { topMenuItems.push({ id: "audioEditor", icon: "audioEditor", label: "menu.audioEditor", section: "main" }); }
+topMenuItems.push(
+    { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" }
+);
 if (SubSytemSwitch.imageEditor) { topMenuItems.push({ id: "imageEditor", icon: "imageEditor", label: "menu.imageEditor", section: "main" }); }
 if (SubSytemSwitch.pixelEditor) { topMenuItems.push({ id: "pixelEditor", icon: "pixelEditor", label: "menu.pixelEditor", section: "main" }); }
 if (SubSytemSwitch.chartChat) { topMenuItems.push({ id: "chartChat", icon: "chart", label: "menu.chart", section: "main" }); }
@@ -19,9 +23,6 @@ if (SubSytemSwitch.sandbox3d) { topMenuItems.push({ id: "sandbox3d", icon: "sand
 if (SubSytemSwitch.blockchain) {
     topMenuItems.push({ id: "blockchain", icon: "blockchain", label: "menu.blockchain", section: "main" },);
 }
-topMenuItems.push(
-    { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" }
-);
 topMenuItems.push({ id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket", section: "ai" });
 topMenuItems.push({ id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" });
 topMenuItems.push({
@@ -48,16 +49,6 @@ export const bottomMenuItems: MenuItemWithSection[] = [
             { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
             { id: "storage", icon: "config", label: "menu.storage" },
             { id: "drivers", icon: "skills", label: "menu.drivers" },
-            // {
-            //     id: "system_group",
-            //     icon: "config",
-            //     label: "menu.systemConfig",
-            //     children: [
-            //         { id: "interface", icon: "config", label: "settings.universalSettings" },
-            //         { id: "workspaceConfig", icon: "config", label: "settings.workspaceConfig" },
-            //         { id: "storage", icon: "config", label: "menu.storage" },
-            //     ],
-            // },
         ],
     },
 ];

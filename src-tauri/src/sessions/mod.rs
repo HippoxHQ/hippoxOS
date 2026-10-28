@@ -1,6 +1,5 @@
 pub mod apiclient;
 pub mod blockchain;
-pub mod chat;
 pub mod codeeditor;
 pub mod databaseclient;
 pub mod dockerclient;
@@ -13,7 +12,6 @@ pub mod sandbox3d;
 pub mod videoeditor;
 pub use apiclient::*;
 pub use blockchain::*;
-pub use chat::*;
 pub use codeeditor::*;
 pub use databaseclient::*;
 pub use dockerclient::*;

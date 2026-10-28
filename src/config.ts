@@ -26,6 +26,7 @@ export const appConfig = AppConfig.getInstance();
 export const SubSytemSwitch = {
     generalChat: true,
     videoEditor: true,
+    audioEditor: true,
     chartChat: true,
     codeEditorChat: true,
     mapChat: true,

@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { TaskInfo } from '../../core/types';
 import { ChatMessage } from '../../types/types';
 import { TrackRowInfo } from '../VideoEditor/types';
+import { NLEEditMode } from '../../subsystem/VideoEditor/types';
 export interface TrackInfo {
     track_type: "video" | "audio" | "image" | "text";
     // Video fields
@@ -48,13 +49,14 @@ export const videoSessionCommands = {
         description: string,
         initialChat: ChatMessage[],
         initialTerminal: any[],
-        workflowMode?: string,
-        videoUrl?: string,
-        videoTitle?: string,
-        videoSourcePath?: string,
-        audioSourcePaths?: string[],
-        imageSourcePaths?: string[],
-        textSourcePaths?: string[],
+        workflowMode: string | undefined,
+        videoUrl: string | undefined,
+        videoTitle: string | undefined,
+        videoSourcePath: string | undefined,
+        audioSourcePaths: string[] | undefined,
+        imageSourcePaths: string[] | undefined,
+        textSourcePaths: string[] | undefined,
+        nleEditMode: NLEEditMode,
     ): Promise<string> {
         return await invoke('cmd_create_video_dialog_session', {
             sessionId,
@@ -69,13 +71,14 @@ export const videoSessionCommands = {
             audioSourcePaths,
             imageSourcePaths,
             textSourcePaths,
+            nleEditMode,
         });
     },
-    async listVideoSessions(): Promise<any[]> {
-        return await invoke('cmd_list_video_dialog_sessions');
+    async listVideoSessions(nleEditMode: NLEEditMode): Promise<any[]> {
+        return await invoke('cmd_list_video_dialog_sessions', { nleEditMode });
     },
-    async loadVideoSessionConfig(sessionId: string): Promise<any | null> {
-        return await invoke('cmd_load_video_session_config', { sessionId });
+    async loadVideoSessionConfig(sessionId: string, nleEditMode: NLEEditMode): Promise<any | null> {
+        return await invoke('cmd_load_video_session_config', { sessionId, nleEditMode });
     },
     async updateVideoSessionConfig(sessionId: string, updates: Record<string, any>): Promise<void> {
         return await invoke('cmd_update_video_session_config', {

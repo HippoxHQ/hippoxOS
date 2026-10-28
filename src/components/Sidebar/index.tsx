@@ -22,7 +22,7 @@ if (typeof document !== "undefined") {
 /**
  * Subsystem sidebar item ids that can be opened in a separate window.
  */
-const NEW_WINDOW_CAPABLE_ITEMS = ["generalChat", "codeEditorChat", "chartChat", "mapChat", "videoEditor", "sandbox3d", "blockchain", "imageEditor", "pixelEditor", "databaseClient", "dockerClient", "apiClient", "userProfile"];
+const NEW_WINDOW_CAPABLE_ITEMS = ["generalChat", "codeEditorChat", "chartChat", "mapChat", "videoEditor", "audioEditor", "sandbox3d", "blockchain", "imageEditor", "pixelEditor", "databaseClient", "dockerClient", "apiClient", "userProfile"];
 /**
  * Small hover context menu for a sidebar item.
  */
@@ -338,6 +338,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       "chartChat",
       "mapChat",
       "videoEditor",
+      "audioEditor",
       "sandbox3d",
       "blockchain",
       "imageEditor",
@@ -347,7 +348,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       "apiClient",
       "home",
     ];
-    if (itemId != "videoEditor") {
+    // Keep video editor state alive for both the video editor and the audio
+    // editor entry, since the audio editor opens inside the video editor page.
+    if (itemId != "videoEditor" && itemId != "audioEditor") {
       videoEditorStateManager.clear();
       clearVideoEditorAllMemory();
     }
@@ -452,6 +455,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     if (itemId === "apiClient") {
       return activeId === "apiClient";
     }
+    // Audio editor has its own active state so it can be highlighted
+    // independently of the video editor entry.
+    if (itemId === "audioEditor") {
+      return activeId === "audioEditor";
+    }
     return activeId === itemId;
   };
   const handleNewSessionClick = () => {
@@ -493,6 +501,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
     }
     if (item.id === "apiClient") {
       return t("menu.apiClient");
+    }
+    // Audio editor label mapping.
+    if (item.id === "audioEditor") {
+      return t("menu.audioEditor");
     }
     return t(item.label);
   };

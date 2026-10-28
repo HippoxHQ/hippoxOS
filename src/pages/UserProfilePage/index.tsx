@@ -1,3 +1,4 @@
+// index.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -12,20 +13,8 @@ import { showToast, ToastType } from "../../components/Toast";
 import { showTooltip } from "../../components/Tooltip";
 import { X } from "lucide-react";
 import { SubSytemSwitch } from "../../config";
-interface ChatStatisticsRecord {
-  task_id: string;
-  session_id: string;
-  subsystem: string;
-  role: string;
-  source: string;
-  provider: string;
-  model: string;
-  content: string;
-  workflow_mode: string;
-  input_tokens: number;
-  output_tokens: number;
-  created_at: number;
-}
+import { statisticsCommands } from "../../command/Statistics";
+import type { ChatStatisticsRecord, MediaGenerationStatistics } from "../../command/Statistics";
 /** Root structure of one chat subsystem's statistics.json. */
 interface ChatStatistics {
   version: number;
@@ -41,6 +30,7 @@ type SubsystemKey =
   | "map"
   | "code_editor"
   | "video"
+  | "audio"
   | "sandbox3d"
   | "block_chain"
   // New subsystems
@@ -67,6 +57,8 @@ const isSubsystemEnabled = (key: SubsystemKey): boolean => {
       return SubSytemSwitch.codeEditorChat;
     case "video":
       return SubSytemSwitch.videoEditor;
+    case "audio":
+      return SubSytemSwitch.audioEditor;
     case "sandbox3d":
       return SubSytemSwitch.sandbox3d;
     case "block_chain":
@@ -119,12 +111,6 @@ interface MediaStatistics {
   total_task_count: number;
   records: MediaTaskRecord[];
 }
-/** Bundle of the three media generation statistics ledgers. */
-interface MediaGenerationStatistics {
-  image: MediaStatistics | null;
-  audio: MediaStatistics | null;
-  video: MediaStatistics | null;
-}
 /** Metadata for each chat subsystem card: key, fallback label, accent color. */
 const SUBSYSTEM_META: { key: SubsystemKey; label: string; color: string }[] = [
   { key: "general", label: "General", color: "#818cf8" },
@@ -132,6 +118,7 @@ const SUBSYSTEM_META: { key: SubsystemKey; label: string; color: string }[] = [
   { key: "map", label: "Map", color: "#f59e0b" },
   { key: "code_editor", label: "CodeEditor", color: "#8b5cf6" },
   { key: "video", label: "Video", color: "#ec4899" },
+  { key: "audio", label: "Audio", color: "#14b8a6" },
   { key: "sandbox3d", label: "SandBox3D", color: "#06b6d4" },
   { key: "block_chain", label: "BlockChain", color: "#f43f5e" },
   // New subsystems
@@ -143,6 +130,8 @@ const SUBSYSTEM_META: { key: SubsystemKey; label: string; color: string }[] = [
 ];
 /**
  * Canonical subsystem keys, mirroring the backend SubSystemEnum.
+ * Includes "audio" which shares the Video ledger file on disk but is
+ * distinguished by the `nle_edit_mode` field on each record.
  */
 const SUBSYSTEM_KEYS: SubsystemKey[] = (
   [
@@ -151,6 +140,7 @@ const SUBSYSTEM_KEYS: SubsystemKey[] = (
     "map",
     "code_editor",
     "video",
+    "audio",
     "sandbox3d",
     "block_chain",
     // New subsystems
@@ -193,39 +183,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     loadRealUserData();
   }, []);
   const loadDetailedStatistics = async () => {
-    // Fetch every enabled subsystem ledger in parallel.
-    const subsystemEntries = await Promise.all(
-      SUBSYSTEM_KEYS.map(async (subsystem) => {
-        try {
-          const stats = await invoke<ChatStatistics>("cmd_get_statistics_by_subsystem", { subsystem });
-          return [subsystem, stats] as const;
-        } catch (e) {
-          console.warn(`Failed to load statistics for subsystem ${subsystem}:`, e);
-          return [subsystem, null] as const;
-        }
-      }),
-    );
-    const subsysMap: SubsystemStatisticsMap = {};
-    for (const [key, value] of subsystemEntries) {
-      if (value) subsysMap[key] = value;
-    }
-    setSubsystemStats(subsysMap);
+    // Use the statisticsCommands abstraction which handles the
+    // audio/video `nle_edit_mode` split for the shared Video ledger file.
+    const subsysMap = await statisticsCommands.getSubsystemStatistics();
+    setSubsystemStats(subsysMap as SubsystemStatisticsMap);
     // Fetch the three media generation ledgers in parallel.
-    const [image, audio, video] = await Promise.all([
-      invoke<MediaStatistics>("cmd_get_generate_image_statistics").catch((e) => {
-        console.warn("Failed to load image statistics:", e);
-        return null;
-      }),
-      invoke<MediaStatistics>("cmd_get_generate_audio_statistics").catch((e) => {
-        console.warn("Failed to load audio statistics:", e);
-        return null;
-      }),
-      invoke<MediaStatistics>("cmd_get_generate_video_statistics").catch((e) => {
-        console.warn("Failed to load video statistics:", e);
-        return null;
-      }),
-    ]);
-    setMediaStats({ image, audio, video });
+    const media = await statisticsCommands.getMediaGenerationStatistics();
+    setMediaStats(media as MediaGenerationStatistics);
   };
   const loadRealUserData = async () => {
     setLoading(true);
@@ -241,11 +205,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
       const dailyDialogCount: Map<string, number> = new Map();
       const hourlyCount: Map<number, number> = new Map();
       for (let i = 0; i < 24; i++) hourlyCount.set(i, 0);
-      // Load every enabled subsystem's ledger once.
+      // Load every enabled subsystem's ledger once via the statisticsCommands
+      // wrapper. The `"video"` and `"audio"` entries are two logical views of
+      // the same on-disk Video ledger, split by the backend on `nle_edit_mode`.
       const subsystemEntries = await Promise.all(
         SUBSYSTEM_KEYS.map(async (subsystem) => {
           try {
-            const stats = await invoke<ChatStatistics>("cmd_get_statistics_by_subsystem", { subsystem });
+            const stats = await statisticsCommands.getStatisticsBySubsystem(subsystem);
             return [subsystem, stats] as const;
           } catch {
             return [subsystem, null] as const;
@@ -490,6 +456,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
   /**
    * One row per chat subsystem, sourced from its own statistics.json.
    * Disabled subsystems are already excluded from SUBSYSTEM_KEYS.
+   *
+   * `video` and `audio` are two logical views of the same on-disk Video
+   * ledger; the backend splits them on `nle_edit_mode`, so each row is
+   * already the correct subset.
    */
   const subsystemList = SUBSYSTEM_META.filter((meta) => isSubsystemEnabled(meta.key)).map((meta) => {
     const s = subsystemStats[meta.key];
@@ -591,6 +561,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ t, onClose, currentSessionId 
     map: buildModelBreakdown(subsystemStats.map?.records || []),
     code_editor: buildModelBreakdown(subsystemStats.code_editor?.records || []),
     video: buildModelBreakdown(subsystemStats.video?.records || []),
+    audio: buildModelBreakdown(subsystemStats.audio?.records || []),
     sandbox3d: buildModelBreakdown(subsystemStats.sandbox3d?.records || []),
     block_chain: buildModelBreakdown(subsystemStats.block_chain?.records || []),
     // New subsystems

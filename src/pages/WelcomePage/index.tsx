@@ -94,13 +94,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
    * The `enabled` flag is derived from SubSytemSwitch so that cards can be toggled on/off globally.
    */
   const allDomains: {
-    id: "general" | "code" | "map" | "chart" | "video" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
+    id: "general" | "code" | "map" | "chart" | "video" | "audio" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
     label: string;
     labelEn: string;
     description: string;
     descriptionEn: string;
     bgEmoji: string;
     pageId: string;
+    subsystem: string;
     enabled: boolean;
   }[] = [
     {
@@ -111,37 +112,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Daily Q&A · Task Execution · Knowledge Retrieval",
       bgEmoji: "💬",
       pageId: "generalChat",
+      subsystem: "general",
       enabled: SubSytemSwitch.generalChat,
-    },
-    {
-      id: "code",
-      label: "代码编辑",
-      labelEn: "Code Editor",
-      description: "编写 · 审查 · 重构 · 自动补全",
-      descriptionEn: "Write · Review · Refactor · Auto-complete",
-      bgEmoji: "💻",
-      pageId: "codeEditorChat",
-      enabled: SubSytemSwitch.codeEditorChat,
-    },
-    {
-      id: "map",
-      label: "地理分析",
-      labelEn: "Map Analysis",
-      description: "位置标注 · 空间数据 · 路线规划",
-      descriptionEn: "Location Tagging · Spatial Data · Route Planning",
-      bgEmoji: "🗺️",
-      pageId: "mapChat",
-      enabled: SubSytemSwitch.mapChat,
-    },
-    {
-      id: "chart",
-      label: "金融分析",
-      labelEn: "Finance Analysis",
-      description: "K线分析 · 技术指标 · 市场研判",
-      descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
-      bgEmoji: "📊",
-      pageId: "chartChat",
-      enabled: SubSytemSwitch.chartChat,
     },
     {
       id: "video",
@@ -151,27 +123,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Edit · Effects · Export · Multi-track Editing",
       bgEmoji: "🎬",
       pageId: "videoEditor",
+      subsystem: "video",
       enabled: SubSytemSwitch.videoEditor,
     },
     {
-      id: "sandbox",
-      label: "3D沙盒",
-      labelEn: "3D Sandbox",
-      description: "三维建模 · 场景构建 · 实时渲染",
-      descriptionEn: "3D Modeling · Scene Building · Real-time Rendering",
-      bgEmoji: "🧊",
-      pageId: "sandbox3d",
-      enabled: SubSytemSwitch.sandbox3d,
-    },
-    {
-      id: "blockchain",
-      label: "区块链",
-      labelEn: "Blockchain",
-      description: "链上交互 · 智能合约 · 交易追踪",
-      descriptionEn: "On-chain Interaction · Smart Contracts · Transaction Tracking",
-      bgEmoji: "⛓️",
-      pageId: "blockchain",
-      enabled: SubSytemSwitch.blockchain,
+      id: "audio",
+      label: "音频编辑",
+      labelEn: "Audio Editor",
+      description: "剪辑 · 混音 · 音效 · 多轨道编辑",
+      descriptionEn: "Edit · Mixing · Effects · Multi-track Editing",
+      bgEmoji: "🎧",
+      pageId: "audioEditor",
+      subsystem: "audioEditor",
+      enabled: (SubSytemSwitch as any).audioEditor ?? SubSytemSwitch.videoEditor,
     },
     {
       id: "imageEditor",
@@ -181,6 +145,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Layer Editing · Filters · Batch Processing",
       bgEmoji: "🖼️",
       pageId: "imageEditor",
+      subsystem: "imageEditor",
       enabled: SubSytemSwitch.imageEditor,
     },
     {
@@ -191,7 +156,63 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Pixel Drawing · Sprite · Animation Frames",
       bgEmoji: "🎨",
       pageId: "pixelEditor",
+      subsystem: "pixelEditor",
       enabled: SubSytemSwitch.pixelEditor,
+    },
+    {
+      id: "chart",
+      label: "金融分析",
+      labelEn: "Finance Analysis",
+      description: "K线分析 · 技术指标 · 市场研判",
+      descriptionEn: "Candlestick · Technical Indicators · Market Analysis",
+      bgEmoji: "📊",
+      pageId: "chartChat",
+      subsystem: "chart",
+      enabled: SubSytemSwitch.chartChat,
+    },
+    {
+      id: "map",
+      label: "地理分析",
+      labelEn: "Map Analysis",
+      description: "位置标注 · 空间数据 · 路线规划",
+      descriptionEn: "Location Tagging · Spatial Data · Route Planning",
+      bgEmoji: "🗺️",
+      pageId: "mapChat",
+      subsystem: "map",
+      enabled: SubSytemSwitch.mapChat,
+    },
+    {
+      id: "code",
+      label: "代码编辑",
+      labelEn: "Code Editor",
+      description: "编写 · 审查 · 重构 · 自动补全",
+      descriptionEn: "Write · Review · Refactor · Auto-complete",
+      bgEmoji: "💻",
+      pageId: "codeEditorChat",
+      subsystem: "codeeditor",
+      enabled: SubSytemSwitch.codeEditorChat,
+    },
+    {
+      id: "sandbox",
+      label: "3D沙盒",
+      labelEn: "3D Sandbox",
+      description: "三维建模 · 场景构建 · 实时渲染",
+      descriptionEn: "3D Modeling · Scene Building · Real-time Rendering",
+      bgEmoji: "🧊",
+      pageId: "sandbox3d",
+      subsystem: "sandbox3d",
+      enabled: SubSytemSwitch.sandbox3d,
+    },
+    {
+      id: "blockchain",
+      label: "区块链",
+      labelEn: "Blockchain",
+      description: "链上交互 · 智能合约 · 交易追踪",
+      descriptionEn: "On-chain Interaction · Smart Contracts · Transaction Tracking",
+      bgEmoji: "⛓️",
+      pageId: "blockchain",
+      subsystem: "blockchain",
+      enabled: SubSytemSwitch.blockchain,
     },
     {
       id: "databaseClient",
@@ -201,6 +222,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Connect · Query · Data Management",
       bgEmoji: "🗄️",
       pageId: "databaseClient",
+      subsystem: "databaseClient",
       enabled: SubSytemSwitch.databaseClient,
     },
     {
@@ -211,6 +233,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Container Management · Images · Orchestration",
       bgEmoji: "🐳",
       pageId: "dockerClient",
+      subsystem: "dockerClient",
       enabled: SubSytemSwitch.dockerClient,
     },
     {
@@ -221,17 +244,16 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       descriptionEn: "Request Debugging · API Testing · Environment Management",
       bgEmoji: "🔌",
       pageId: "apiClient",
+      subsystem: "apiClient",
       enabled: SubSytemSwitch.apiClient,
     },
   ];
   /**
    * Filtered list of domain cards based on SubSytemSwitch flags.
-   * Only enabled subsystems are rendered as navigation cards.
    */
   const domains = allDomains.filter((domain) => domain.enabled);
   /**
    * Total number of pages needed to display all enabled domain cards.
-   * When the number of cards is <= 6, only one page is shown and no pagination controls appear.
    */
   const totalDomainPages = Math.ceil(domains.length / DOMAIN_CARDS_PER_PAGE);
   /**
@@ -257,11 +279,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   }, [totalDomainPages, domainPage]);
   /**
    * Auto page turning for domain cards.
-   * - Runs every 2 seconds (DOMAIN_AUTO_PLAY_INTERVAL_MS).
-   * - Only active when pagination is enabled (more than 6 cards) and autoPlayEnabled is true.
-   * - Loops back to the first page after reaching the last page.
-   * - Pauses while the user is hovering over the domain cards wrapper.
-   * - The interval resets whenever domainPage changes (manual click or auto turn).
    */
   useEffect(() => {
     if (!isDomainPaginationEnabled || !autoPlayEnabled || totalDomainPages <= 1) {
@@ -289,25 +306,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   };
   /**
    * Handle navigation to a page with APP_WINDOW_EVENTS
-   * This ensures sidebar icon is highlighted and proper event is dispatched
+   * This ensures sidebar icon is highlighted and proper event is dispatched.
    */
-  const handleNavigate = (pageId: string) => {
-    // Map pageId to subsystem
-    const pageToSubsystem: Record<string, string> = {
-      generalChat: "general",
-      chartChat: "chart",
-      mapChat: "map",
-      codeEditorChat: "codeeditor",
-      videoEditor: "video",
-      sandbox3d: "sandbox3d",
-      blockchain: "blockchain",
-      imageEditor: "imageEditor",
-      pixelEditor: "pixelEditor",
-      databaseClient: "databaseClient",
-      dockerClient: "dockerClient",
-      apiClient: "apiClient",
-    };
-    const subsystem = pageToSubsystem[pageId] || "general";
+  const handleNavigate = (pageId: string, subsystem: string) => {
     // Dispatch session selected event to update sidebar
     // This will trigger sidebar icon highlight via the Sidebar component's listener
     window.dispatchEvent(
@@ -490,12 +491,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   }, []);
   /**
    * Handle file addition from FileUploader component.
-   *
-   * If the uploaded files contain any media files (video, audio, image),
-   * navigate to the video editor subsystem with the file.
-   *
-   * Text and SKILL files are handled normally and will be sent
-   * with the chat message when the user submits the form.
    */
   const handleFilesAdd = (files: UploadFile[]) => {
     const mediaFiles = files.filter((f) => isMediaFile(f));
@@ -527,12 +522,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   };
   /**
    * Handle form submission.
-   *
-   * If there are text/skill files in the upload list,
-   * send them along with the message to start a general chat session.
-   *
-   * Media files are handled in handleFilesAdd and navigate
-   * directly to the video editor, so they won't be present in uploadedFiles.
    */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -772,36 +761,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                 key={domain.id}
                 className="domain-card"
                 onClick={() => {
-                  // Map domain to subsystem for SESSION_SELECTED event
-                  const domainToSubsystem: Record<string, string> = {
-                    general: "general",
-                    code: "codeeditor",
-                    map: "map",
-                    chart: "chart",
-                    video: "video",
-                    sandbox: "sandbox3d",
-                    blockchain: "blockchain",
-                    imageEditor: "imageEditor",
-                    pixelEditor: "pixelEditor",
-                    databaseClient: "databaseClient",
-                    dockerClient: "dockerClient",
-                    apiClient: "apiClient",
-                  };
-                  const subsystem = domainToSubsystem[domain.id] || "general";
-                  const pageId = domain.pageId;
                   // Dispatch SESSION_SELECTED event to update sidebar highlight
-                  // This ensures the sidebar icon is highlighted when navigating via welcome page cards
+                  // using the CANONICAL subsystem id carried by the card.
                   window.dispatchEvent(
                     new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
                       detail: {
                         sessionId: "",
                         title: "",
-                        subsystem: subsystem,
+                        subsystem: domain.subsystem,
                       },
                     }),
                   );
                   // Navigate to the target page
-                  handleNavigate(pageId);
+                  handleNavigate(domain.pageId, domain.subsystem);
                 }}
               >
                 <div className="card-bg-emoji">{domain.bgEmoji}</div>
@@ -828,37 +800,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
             ))}
           </div>
         )}
-        {/* Example Prompts Section */}
-        {/* <div className="examples-section">
-          <div className="examples-title">{t("welcome.examples") || "Try these"}</div>
-          <div className="examples-grid">
-            {currentPrompts.slice(0, 11).map((prompt, index) => {
-              const randomWidths = [150, 170, 190, 210, 160, 180, 200, 220, 155, 175, 195, 215, 165, 185, 205, 225];
-              const width = randomWidths[index % randomWidths.length];
-              return (
-                <div
-                  key={index}
-                  className="example-chip"
-                  style={{ width: `${width}px` }}
-                  onClick={() => handleExampleClick(prompt)}
-                  onMouseEnter={(e) => {
-                    const span = e.currentTarget.querySelector("span:last-child");
-                    if (span && span.scrollWidth > span.clientWidth) {
-                      showTooltipOnElement(e.currentTarget, prompt);
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    const container = document.getElementById("global-tooltip-container");
-                    if (container) container.remove();
-                  }}
-                >
-                  <span className="example-icon">💡</span>
-                  <span>{prompt.length > 25 ? prompt.slice(0, 25) + "..." : prompt}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div> */}
       </div>
     </div>
   );

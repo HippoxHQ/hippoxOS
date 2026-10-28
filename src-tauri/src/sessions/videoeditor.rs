@@ -11,6 +11,7 @@ use crate::subsystem::videoeditor::{
     emit_refresh_timeline_and_player, load_metadata, load_session_config, load_session_metadata, save_session_config, save_session_metadata,
     save_session_tracks, update_download_material_mapping, update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
 };
+use crate::subsystem::NLEEditMode;
 use chrono::{Duration, Local};
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -48,9 +49,6 @@ fn save_pinned_sessions_to_config(pinned_sessions: &[String]) -> Result<(), Stri
     Ok(())
 }
 /// Background task to process a video file asynchronously
-///
-/// This function runs in a background thread pool to handle file copying,
-/// metadata extraction, and session updates without blocking the main thread.
 ///
 /// # Arguments
 /// * `app_handle` - The Tauri app handle for emitting events
@@ -167,9 +165,6 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
 }
 /// Background task to process multiple audio files asynchronously
 ///
-/// This function processes each audio file in the list sequentially,
-/// inserting them into the session and updating metadata.
-///
 /// # Arguments
 /// * `app_handle` - The Tauri app handle for emitting events
 /// * `session_id` - The session identifier
@@ -267,9 +262,6 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
 }
 /// Background task to process multiple image files asynchronously
 ///
-/// This function processes each image file in the list sequentially,
-/// inserting them into the session and updating metadata.
-///
 /// # Arguments
 /// * `app_handle` - The Tauri app handle for emitting events
 /// * `session_id` - The session identifier
@@ -366,9 +358,6 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
     }
 }
 /// Background task to process multiple text files asynchronously
-///
-/// This function processes each text file in the list sequentially,
-/// inserting them into the session and updating metadata.
 ///
 /// # Arguments
 /// * `app_handle` - The Tauri app handle for emitting events
@@ -571,9 +560,6 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
 }
 /// Create a new video dialog session
 ///
-/// This command creates a new video editing session with the given parameters.
-/// Files are processed asynchronously in the background to prevent UI blocking.
-///
 /// # Arguments
 /// * `app_handle` - The Tauri app handle for emitting events
 /// * `session_id` - Unique identifier for the session
@@ -588,6 +574,7 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
 /// * `audio_source_paths` - Optional list of audio file paths to import
 /// * `image_source_paths` - Optional list of image file paths to import
 /// * `text_source_paths` - Optional list of text file paths to import
+/// * `nle_edit_mode` - Required editing mode ("video" or "audio")
 ///
 /// # Returns
 /// * `Ok(String)` - Path to the session directory
@@ -607,8 +594,11 @@ pub fn cmd_create_video_dialog_session(
     audio_source_paths: Option<Vec<String>>,
     image_source_paths: Option<Vec<String>>,
     text_source_paths: Option<Vec<String>>,
+    nle_edit_mode: String,
 ) -> Result<String, String> {
-    debug!("cmd_create_video_dialog_session - START: session_id={}, title={}", session_id, title);
+    debug!("cmd_create_video_dialog_session - START: session_id={}, title={}, nle_edit_mode={}", session_id, title, nle_edit_mode);
+    // Parse the required editing mode. Unknown values fall back to video.
+    let nle_edit_mode = NLEEditMode::from_str(&nle_edit_mode);
     // CALCULATE FILE COUNT FIRST - BEFORE ANY MOVES
     let file_count = (video_source_path.is_some() as u8)
         + (audio_source_paths.as_ref().map_or(0, |v| if v.is_empty() { 0 } else { 1 }) as u8)
@@ -644,6 +634,8 @@ pub fn cmd_create_video_dialog_session(
     }
     // Initialize session metadata
     let mut session_metadata = SessionMetadata::new(session_id, title, description);
+    // Persist the requested editing mode on the session metadata.
+    session_metadata.set_nle_edit_mode(nle_edit_mode);
     if let Some(mode) = workflow_mode {
         debug!("cmd_create_video_dialog_session - Setting workflow_mode: {}", mode);
         session_metadata.workflow_mode = mode;
@@ -748,6 +740,8 @@ pub fn cmd_create_video_dialog_session(
         "workflow_mode": session_metadata.workflow_mode,
         "workspace_path": workspace_dir.to_string_lossy().to_string(),
         "metadata_path": metadata_path.to_string_lossy().to_string(),
+        // Persist the editing mode in the on-disk session config as well.
+        "nle_edit_mode": nle_edit_mode.as_str(),
     });
     let config_path = session_dir.join("config.json");
     debug!("cmd_create_video_dialog_session - Saving config to: {:?}", config_path);
@@ -764,14 +758,21 @@ pub fn cmd_create_video_dialog_session(
     let _ = add_session_to_profile(session_id, chrono::Utc::now().timestamp_millis() as u64);
     Ok(session_dir.to_string_lossy().to_string())
 }
-/// List all video dialog sessions
+/// List all video dialog sessions for a given editing mode.
+///
+/// # Arguments
+/// * `nle_edit_mode` - Required editing mode ("video" or "audio"). Sessions whose
+///   `config.json` does not contain an `nle_edit_mode` field are treated as
+///   "video" so legacy projects keep showing up in the video editor.
 ///
 /// # Returns
 /// * `Ok(Vec<serde_json::Value>)` - List of session configurations
 /// * `Err(String)` - Error message if listing fails
 #[tauri::command]
-pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String> {
-    debug!("cmd_list_video_dialog_sessions - START");
+pub fn cmd_list_video_dialog_sessions(nle_edit_mode: String) -> Result<Vec<serde_json::Value>, String> {
+    debug!("cmd_list_video_dialog_sessions - START: nle_edit_mode={}", nle_edit_mode);
+    // Parse the required editing mode. Unknown values fall back to video.
+    let nle_edit_mode = NLEEditMode::from_str(&nle_edit_mode);
     let dir = get_video_editing_system_dialog_history_dir();
     if !FileUtils::path_exists(&dir) {
         debug!("cmd_list_video_dialog_sessions - Directory does not exist, returning empty list");
@@ -788,11 +789,28 @@ pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String
             if FileUtils::path_exists(&config_path) {
                 let content = FileUtils::read_file_to_string(&config_path).map_err(|e| format!("Failed to read config: {:?}", e))?;
                 if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
+                    // Filter by editing mode. Legacy configs without the field
+                    // are treated as "video" so old projects remain visible in
+                    // the video editor.
+                    let session_edit_mode =
+                        config.get("nle_edit_mode").and_then(|v| v.as_str()).map(NLEEditMode::from_str).unwrap_or(NLEEditMode::Video);
+                    if session_edit_mode != nle_edit_mode {
+                        debug!(
+                            "cmd_list_video_dialog_sessions - Skipping session {} (mode {:?} != requested {:?})",
+                            path.file_name().unwrap_or_default().to_string_lossy(),
+                            session_edit_mode,
+                            nle_edit_mode
+                        );
+                        continue;
+                    }
                     if let Some(obj) = config.as_object_mut() {
                         let session_id = path.file_name().unwrap_or_default().to_string_lossy().to_string();
                         obj.insert("path".to_string(), serde_json::json!(path.to_string_lossy()));
                         obj.insert("session_id".to_string(), serde_json::json!(session_id));
                         obj.insert("is_pinned".to_string(), serde_json::json!(pinned_sessions.contains(&session_id)));
+                        // Expose the resolved edit mode so the frontend can rely
+                        // on it even for legacy configs.
+                        obj.insert("nle_edit_mode".to_string(), serde_json::json!(session_edit_mode.as_str()));
                         // Get session cover thumbnail
                         let cover_path = get_session_cover_path(&session_id);
                         let thumbnail_path = if cover_path.exists() { Some(cover_path.to_string_lossy().to_string()) } else { None };
@@ -821,13 +839,15 @@ pub fn cmd_list_video_dialog_sessions() -> Result<Vec<serde_json::Value>, String
 ///
 /// # Arguments
 /// * `session_id` - The session identifier
+/// * `nle_edit_mode` - Required editing mode ("video" or "audio")
 ///
 /// # Returns
 /// * `Ok(Option<serde_json::Value>)` - The session configuration if found
 /// * `Err(String)` - Error message if loading fails
 #[tauri::command]
-pub fn cmd_load_video_session_config(session_id: &str) -> Result<Option<serde_json::Value>, String> {
-    debug!("cmd_load_video_session_config - START: session_id={}", session_id);
+pub fn cmd_load_video_session_config(session_id: &str, nle_edit_mode: String) -> Result<Option<serde_json::Value>, String> {
+    debug!("cmd_load_video_session_config - START: session_id={}, nle_edit_mode={}", session_id, nle_edit_mode);
+    let nle_edit_mode = NLEEditMode::from_str(&nle_edit_mode);
     let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
@@ -851,7 +871,13 @@ pub fn cmd_load_video_session_config(session_id: &str) -> Result<Option<serde_js
             if config.get("description").is_none() || config["description"].is_null() {
                 config["description"] = serde_json::json!(metadata.description);
             }
+            // The requested edit mode takes precedence over the persisted value
+            // so the caller can force the page into the expected mode.
+            config["nle_edit_mode"] = serde_json::json!(nle_edit_mode.as_str());
         }
+    } else {
+        // No metadata yet: still surface the requested edit mode.
+        config["nle_edit_mode"] = serde_json::json!(nle_edit_mode.as_str());
     }
     debug!("cmd_load_video_session_config - DONE: session_id={}", session_id);
     Ok(Some(config))
@@ -898,6 +924,10 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
                     metadata.description = value.as_str().unwrap_or(&metadata.description).to_string();
                 } else if key == "workflow_mode" {
                     metadata.workflow_mode = value.as_str().unwrap_or(&metadata.workflow_mode).to_string();
+                } else if key == "nle_edit_mode" {
+                    if let Some(mode) = value.as_str() {
+                        metadata.set_nle_edit_mode(NLEEditMode::from_str(mode));
+                    }
                 }
             }
         }
