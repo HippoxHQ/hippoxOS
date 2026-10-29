@@ -8,8 +8,6 @@ use std::time::Duration;
 pub struct HttpClient {
     client: Client,
     /// Dedicated client for large file downloads (installers, etc.).
-    /// Kept separate from the shared client so that download-specific timeouts
-    /// do not affect regular JSON / text requests.
     download_client: Client,
 }
 impl HttpClient {
@@ -93,9 +91,10 @@ impl HttpClient {
         Ok(bytes.to_vec())
     }
     /// Streaming download for large files (installers, packages, etc.).
-    pub async fn fetch_bytes_streaming<F>(&self, url: &str, referer: Option<&str>, mut on_progress: F) -> Result<Vec<u8>, String>
+    pub async fn fetch_bytes_streaming<F, C>(&self, url: &str, referer: Option<&str>, mut on_progress: F, should_cancel: C) -> Result<Vec<u8>, String>
     where
         F: FnMut(u64, Option<u64>),
+        C: Fn() -> bool,
     {
         use futures_util::StreamExt;
         let mut request = self.download_client.get(url);
@@ -117,6 +116,10 @@ impl HttpClient {
         let mut buf: Vec<u8> = Vec::with_capacity(initial_capacity);
         let start = std::time::Instant::now();
         while let Some(chunk) = stream.next().await {
+            // Abort as soon as cancellation is requested, before processing the chunk.
+            if should_cancel() {
+                return Err("cancelled".to_string());
+            }
             match chunk {
                 Ok(c) => {
                     buf.extend_from_slice(&c);
@@ -158,7 +161,8 @@ impl HttpClient {
                 std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create parent dir {:?}: {}", parent, e))?;
             }
         }
-        let bytes = self.fetch_bytes_streaming(url, None, on_progress).await?;
+        // `download_to_path` is not cancellable by design; pass a closure that never cancels.
+        let bytes = self.fetch_bytes_streaming(url, None, on_progress, || false).await?;
         std::fs::write(target, &bytes).map_err(|e| format!("Failed to write file {:?}: {}", target, e))?;
         Ok(target.to_path_buf())
     }

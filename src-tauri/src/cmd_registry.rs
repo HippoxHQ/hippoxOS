@@ -644,6 +644,16 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_upload_audio_material,
         subsystem::cmd_upload_image_material,
         subsystem::cmd_upload_text_material,
+        //  Mobile Upload
+        subsystem::cmd_start_mobile_upload,
+        subsystem::cmd_revoke_mobile_upload_token,
+        subsystem::cmd_stop_mobile_upload,
+        subsystem::cmd_list_mobile_uploads,
+        subsystem::cmd_set_mobile_upload_material_id,
+        subsystem::cmd_get_mobile_upload_material_for_session,
+        subsystem::cmd_clear_mobile_upload_material_for_session,
+        subsystem::cmd_register_mobile_upload_as_material,
+        subsystem::cmd_delete_mobile_upload,
         //  Video Materials Operations
         subsystem::cmd_delete_material,
         subsystem::cmd_rename_material,

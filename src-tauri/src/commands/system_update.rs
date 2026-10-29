@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::{command, AppHandle, Emitter};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use tauri::{command, AppHandle};
 const FILE_BASE_PREFIX: &str = "hippoxos";
 const PLATFORM_NAME_WINDOWS: &str = "windows";
 const PLATFORM_NAME_MACOS: &str = "macos";
@@ -22,8 +22,9 @@ const ARCH_X86: &str = "x86";
 const PLATFORM_WINDOWS_EXT: &str = ".msi";
 const PLATFORM_MACOS_EXT: &str = ".dmg";
 const PLATFORM_LINUX_EXT: &str = ".deb";
-const UPDATE_PROGRESS_EVENT: &str = "update-download-progress";
+static UPDATE_GENERATION: AtomicU64 = AtomicU64::new(0);
 static UPDATE_CANCEL_FLAG: AtomicBool = AtomicBool::new(false);
+static UPDATE_DOWNLOAD_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
     pub current_version: String,
@@ -69,6 +70,16 @@ pub fn get_current_arch() -> String {
     } else {
         "unknown".to_string()
     }
+}
+/// Start a new download generation and clear the cancel flag.
+fn begin_update_generation() -> u64 {
+    let gen = UPDATE_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    UPDATE_CANCEL_FLAG.store(false, Ordering::SeqCst);
+    gen
+}
+/// Returns true when `gen` is still the active generation and has not been cancelled.
+fn is_generation_active(gen: u64) -> bool {
+    UPDATE_GENERATION.load(Ordering::SeqCst) == gen && !UPDATE_CANCEL_FLAG.load(Ordering::SeqCst)
 }
 /// Fetch latest release from GitHub with fallback to mirror
 async fn fetch_latest_release() -> Result<GitHubRelease, String> {
@@ -179,29 +190,52 @@ pub fn cmd_cancel_update_download() {
 /// Download and install update.
 #[command]
 pub async fn cmd_download_and_install_update(app_handle: AppHandle, download_url: String) -> Result<(), String> {
+    // Reject a second concurrent download; the first one must be cancelled and
+    // fully unwind before a new download can begin.
+    if UPDATE_DOWNLOAD_IN_FLIGHT.swap(true, Ordering::SeqCst) {
+        return Err("Another update download is already in progress".to_string());
+    }
+    // Ensure the in-flight guard is released on every exit path.
+    struct InFlightGuard;
+    impl Drop for InFlightGuard {
+        fn drop(&mut self) {
+            UPDATE_DOWNLOAD_IN_FLIGHT.store(false, Ordering::SeqCst);
+        }
+    }
+    let _inflight_guard = InFlightGuard;
     log::info!("Starting download from: {}", download_url);
-    UPDATE_CANCEL_FLAG.store(false, Ordering::SeqCst);
+    let my_gen = begin_update_generation();
     let filename = download_url.split('/').last().unwrap_or("installer.msi").to_string();
     let download_dir = get_download_dir()?;
     let file_path = download_dir.join(&filename);
     let http_client = HttpClient::new();
     let app_for_progress = app_handle.clone();
+    let gen_for_progress = my_gen;
+    let gen_for_cancel = my_gen;
     let bytes = http_client
-        .fetch_bytes_streaming(&download_url, None, move |downloaded, total| {
-            // Compute percentage (0-100). When total is unknown, fall back to 0
-            // so the frontend can still show the shimmer bar.
-            let percent: u8 = match total {
-                Some(t) if t > 0 => {
-                    let p = (downloaded as f64 / t as f64) * 100.0;
-                    p.clamp(0.0, 100.0) as u8
+        .fetch_bytes_streaming(
+            &download_url,
+            None,
+            move |downloaded, total| {
+                // Do not emit stale progress for a cancelled/superseded task.
+                if !is_generation_active(gen_for_progress) {
+                    return;
                 }
-                _ => 0,
-            };
-            let _ = app_for_progress.emit(UPDATE_PROGRESS_EVENT, percent);
-        })
+                crate::events::emit_system_update_download_progress(&app_for_progress, downloaded, total);
+            },
+            move || !is_generation_active(gen_for_cancel),
+        )
         .await
-        .map_err(|e| format!("Download failed: {}", e))?;
-    if UPDATE_CANCEL_FLAG.load(Ordering::SeqCst) {
+        .map_err(|e| {
+            if e == "cancelled" {
+                eprintln!("[update] Generation {} aborted during streaming (cancelled)", my_gen);
+            } else {
+                eprintln!("[update] Generation {} download failed: {}", my_gen, e);
+            }
+            e
+        })?;
+    if !is_generation_active(my_gen) {
+        eprintln!("[update] Generation {} cancelled/superseded; discarding bytes", my_gen);
         log::info!("Update download cancelled by user; discarding bytes");
         let _ = std::fs::remove_file(&file_path);
         return Err("cancelled".to_string());
@@ -211,7 +245,7 @@ pub async fn cmd_download_and_install_update(app_handle: AppHandle, download_url
     file.write_all(&bytes).map_err(|e| format!("Failed to write file: {}", e))?;
     file.flush().map_err(|e| format!("Failed to flush file: {}", e))?;
     log::info!("Download completed: {:?}", file_path);
-    if UPDATE_CANCEL_FLAG.load(Ordering::SeqCst) {
+    if !is_generation_active(my_gen) {
         log::info!("Update cancelled before installer launch; removing file");
         let _ = std::fs::remove_file(&file_path);
         return Err("cancelled".to_string());

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { configCommands } from "../command/config";
 import { windowsCommands } from "../command/windows";
 import { osCommands } from "../command/os";
@@ -48,6 +49,29 @@ function buildReleaseDownloadUrl(version: string, os: string, arch: string): str
   }
   return `https://github.com/HippoxHQ/hippoxOS/releases/download/v${version}/hippoxOS_${normalizedOs}_${archForFilename}${ext}`;
 }
+/**
+ * Payload shape of the `system-update:download-progress` Tauri event.
+ * Mirrors `SystemUpdateDownloadProgressPayload` on the Rust side.
+ */
+interface SystemUpdateDownloadProgressPayload {
+  downloaded: number;
+  total: number | null;
+  percent: number | null;
+  timestamp: string;
+}
+/** Format a byte count into a human readable string (e.g. "12.3 MB"). */
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const digits = value >= 100 || unitIndex === 0 ? 0 : 1;
+  return `${value.toFixed(digits)} ${units[unitIndex]}`;
+}
 const UpdateWindow: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -57,7 +81,11 @@ const UpdateWindow: React.FC = () => {
   const [isMacOS, setIsMacOS] = useState(false);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [installing, setInstalling] = useState<boolean>(false);
+  const [cancelling, setCancelling] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  // Raw byte counters so we can still show something when the server omits Content-Length.
+  const [downloadedBytes, setDownloadedBytes] = useState<number>(0);
+  const [totalBytes, setTotalBytes] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelRequestedRef = useRef<boolean>(false);
@@ -132,6 +160,43 @@ const UpdateWindow: React.FC = () => {
     };
   }, []);
   /**
+   * Subscribe to the backend `system-update:download-progress` event.
+   */
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    (async () => {
+      try {
+        const dispose = await listen<SystemUpdateDownloadProgressPayload>("system-update:download-progress", (event) => {
+          // Ignore late events that arrive after the user requested cancel.
+          if (cancelRequestedRef.current) return;
+          const payload = event.payload;
+          if (!payload) return;
+          setDownloadedBytes(typeof payload.downloaded === "number" ? payload.downloaded : 0);
+          setTotalBytes(typeof payload.total === "number" ? payload.total : null);
+          if (typeof payload.percent === "number") {
+            const clamped = Math.max(0, Math.min(100, payload.percent));
+            setDownloadProgress(clamped);
+          }
+        });
+        if (disposed) {
+          // Component unmounted before listen() resolved; clean up immediately.
+          dispose();
+        } else {
+          unlisten = dispose;
+        }
+      } catch (e) {
+        console.error("[UpdateWindow] Failed to subscribe to download progress event:", e);
+      }
+    })();
+    return () => {
+      disposed = true;
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, []);
+  /**
    * Clear the copy-reset timer on unmount to avoid setting state after unmount.
    */
   useEffect(() => {
@@ -203,14 +268,17 @@ const UpdateWindow: React.FC = () => {
    * Download the installer and launch it.
    */
   const handleInstallUpdate = async () => {
-    if (installing) return;
+    if (installing || cancelling) return;
     if (!versionInfo?.download_url) {
       showToast(ToastType.WARNING, "No download URL available. Please check for updates first.");
       return;
     }
     cancelRequestedRef.current = false;
     setInstalling(true);
+    setCancelling(false);
     setDownloadProgress(0);
+    setDownloadedBytes(0);
+    setTotalBytes(null);
     try {
       await systemUpdateCommands.downloadAndInstallUpdate(versionInfo.download_url, (progress) => {
         // Ignore late callbacks that arrive after the user requested cancel.
@@ -227,23 +295,28 @@ const UpdateWindow: React.FC = () => {
       }
       setDownloadProgress(null);
     } finally {
+      cancelRequestedRef.current = false;
       setInstalling(false);
+      setCancelling(false);
+      setDownloadProgress(null);
+      setDownloadedBytes(0);
+      setTotalBytes(null);
     }
   };
   /**
    * Request cancellation of the in-flight download.
    */
   const handleCancelDownload = useCallback(async () => {
-    if (!installing) return;
+    if (!installing || cancelling) return;
     cancelRequestedRef.current = true;
+    setCancelling(true);
     try {
       await systemUpdateCommands.cancelUpdataDownload();
       showToast(ToastType.INFO, "Download cancelled.");
     } catch (e) {
       console.error("[UpdateWindow] Failed to cancel download:", e);
     }
-    setDownloadProgress(null);
-  }, [installing]);
+  }, [installing, cancelling]);
   /**
    * Copy the platform-specific download link to the clipboard.
    */
@@ -520,7 +593,20 @@ const UpdateWindow: React.FC = () => {
       fontSize: "13px",
       color: "var(--accent-green)",
     },
+    progressText: {
+      display: "flex" as const,
+      alignItems: "center" as const,
+      gap: "4px",
+      fontSize: "12px",
+      color: "var(--text-secondary)",
+      marginRight: "4px",
+      whiteSpace: "nowrap" as const,
+    },
   };
+  // Percentage label shown next to the action buttons.
+  // Falls back to the downloaded byte count when the server omitted Content-Length.
+  const hasPercent = typeof downloadProgress === "number";
+  const progressLabel = hasPercent ? `${Math.round(downloadProgress as number)}%` : downloadedBytes > 0 ? formatBytes(downloadedBytes) : "";
   return (
     <div style={styles.container}>
       <style>{scrollbarStyles}</style>
@@ -844,22 +930,37 @@ const UpdateWindow: React.FC = () => {
           )}
         </div>
         <div style={styles.actionBar}>
+          {/* Percentage / byte count shown next to the action buttons while downloading. */}
+          {installing && progressLabel && (
+            <span style={styles.progressText}>
+              {progressLabel}
+              {hasPercent && totalBytes ? ` · ${formatBytes(downloadedBytes)} / ${formatBytes(totalBytes)}` : ""}
+            </span>
+          )}
           <button
             onClick={handleInstallUpdate}
-            disabled={installing}
+            disabled={installing || cancelling}
             style={{
               ...styles.primaryActionButton,
-              opacity: installing ? 0.6 : 1,
-              cursor: installing ? "not-allowed" : "pointer",
+              opacity: installing || cancelling ? 0.6 : 1,
+              cursor: installing || cancelling ? "not-allowed" : "pointer",
             }}
           >
             <Download size={14} />
             {installing ? "Downloading…" : "Download & Install"}
           </button>
           {installing && (
-            <button onClick={handleCancelDownload} style={styles.cancelActionButton}>
+            <button
+              onClick={handleCancelDownload}
+              disabled={cancelling}
+              style={{
+                ...styles.cancelActionButton,
+                opacity: cancelling ? 0.6 : 1,
+                cursor: cancelling ? "not-allowed" : "pointer",
+              }}
+            >
               <XCircle size={14} />
-              Cancel
+              {cancelling ? "Cancelling…" : "Cancel"}
             </button>
           )}
           <button
@@ -883,6 +984,8 @@ const UpdateWindow: React.FC = () => {
           )}
         </div>
       </div>
+      {/* The shimmer bar is always rendered while installing and never replaced by a
+          deterministic bar. The exact percentage lives in the action bar above. */}
       {installing && <div className="update-shimmer-bar" />}
     </div>
   );
