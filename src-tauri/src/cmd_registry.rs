@@ -296,6 +296,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_disabled_drivers,
         commands::cmd_set_disabled_drivers,
         commands::cmd_get_drivers,
+        commands::cmd_get_max_tokens,
+        commands::cmd_set_max_tokens,
         // workflow
         commands::cmd_get_workflow_mode_names,
         commands::cmd_get_workflow_mode_names_zh,

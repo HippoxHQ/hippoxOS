@@ -153,13 +153,21 @@ pub async fn cmd_send_chat_message_async(
     // Resolve the provider and model so the statistics ledger can attribute
     // the message to a concrete provider/model pair.
     let (provider, model) = resolve_default_chat_provider_and_model().await;
+    let options = hippox::LLMOptions { max_tokens: Some(crate::commands::config::HIPPOX_APP_CONFIG.read().await.max_tokens), ..Default::default() };
     // Handle HippoxResult from submit
-    let core_task_id =
-        match hippox.submit(&enhanced_message, workflow_mode_enum, &model, Some(workflow_callback), Some(skill_callback), disable_drivers_refs) {
-            HippoxResult { data: Some(task_id), .. } => task_id,
-            HippoxResult { error: Some(err), .. } => return Err(err),
-            _ => return Err("Failed to submit task".to_string()),
-        };
+    let core_task_id = match hippox.submit(
+        &enhanced_message,
+        workflow_mode_enum,
+        &model,
+        Some(workflow_callback),
+        Some(skill_callback),
+        disable_drivers_refs,
+        options,
+    ) {
+        HippoxResult { data: Some(task_id), .. } => task_id,
+        HippoxResult { error: Some(err), .. } => return Err(err),
+        _ => return Err("Failed to submit task".to_string()),
+    };
     // Pre-create a pending "llm" record with the submit-time provider/model
     // snapshot and the subsystem identifier.
     append_record(ChatStatisticsRecord::llm(

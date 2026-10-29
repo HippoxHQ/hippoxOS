@@ -6,6 +6,7 @@ import { windowsCommands } from "../../../command/windows";
 import { showToast, ToastType } from "../../../components/Toast";
 import { PanelLeftClose, PanelRightClose, PanelLeft, PanelRight, Loader2, RefreshCw, CheckCircle, ChevronDown } from "lucide-react";
 import { emit } from "@tauri-apps/api/event";
+import { NumberInput } from "../../NumberInput";
 interface UniversalSettingsProps {
   t: (key: string, params?: any) => string;
   theme?: "light" | "dark";
@@ -393,6 +394,9 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
   const [loading, setLoading] = useState(true);
   /* Currently active theme id, self-managed inside this component. */
   const [activeThemeId, setActiveThemeId] = useState<ThemeId>("dark");
+  /* Maximum number of tokens the model may generate per response. */
+  const [maxTokens, setMaxTokens] = useState<number>(16384);
+  const [savingMaxTokens, setSavingMaxTokens] = useState(false);
   // Update check states.
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -433,7 +437,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
   useEffect(() => {
     const loadAllSettings = async () => {
       try {
-        const [general, chart, map, codeEditor, videoEditor, sandbox3d, autoStart] = await Promise.all([
+        const [general, chart, map, codeEditor, videoEditor, sandbox3d, autoStart, maxTokensVal] = await Promise.all([
           configCommands.getSettingsGeneralChatLayoutSwapMode(),
           configCommands.getSettingsChartChatLayoutSwapMode(),
           configCommands.getSettingsMapChatLayoutSwapMode(),
@@ -441,6 +445,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
           configCommands.getSettingsVideoEditorLayoutSwapMode(),
           configCommands.getSettingsSandBox3DLayoutSwapMode(),
           configCommands.getSettingsAutoStart(),
+          configCommands.getMaxTokens(),
         ]);
         setGeneralLayout(general as "terminal-left" | "chat-left");
         setChartLayout(chart as "terminal-left" | "chat-left");
@@ -449,6 +454,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
         setVideoEditorLayout(videoEditor as "terminal-left" | "chat-left");
         setSandbox3dLayout(sandbox3d as "terminal-left" | "chat-left");
         setAutoStartEnabled(autoStart);
+        setMaxTokens(maxTokensVal);
       } catch (error) {
         console.error("Failed to load settings:", error);
       } finally {
@@ -519,6 +525,25 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     } catch (error) {
       console.error("Failed to toggle auto start:", error);
       setAutoStartEnabled(!newState);
+    }
+  };
+  /**
+   * Save the max_tokens setting to the backend.
+   */
+  const handleSaveMaxTokens = async () => {
+    if (!Number.isFinite(maxTokens) || maxTokens <= 0) {
+      showToast(ToastType.WARNING, isZh ? "请输入大于 0 的数值" : "Please enter a value greater than 0");
+      return;
+    }
+    setSavingMaxTokens(true);
+    try {
+      await configCommands.setMaxTokens(maxTokens);
+      showToast(ToastType.SUCCESS, isZh ? "设置已保存" : "Settings saved");
+    } catch (error) {
+      console.error("Failed to save max_tokens:", error);
+      showToast(ToastType.ERROR, isZh ? "保存设置失败" : "Failed to save settings");
+    } finally {
+      setSavingMaxTokens(false);
     }
   };
   const scheduleAutoReset = () => {
@@ -701,6 +726,17 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
     overflow: "hidden",
     whiteSpace: "nowrap",
   };
+  const primaryButtonStyle: React.CSSProperties = {
+    padding: "6px 16px",
+    background: "var(--accent-color, #0066cc)",
+    border: "none",
+    borderRadius: "6px",
+    color: "white",
+    fontSize: "12px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  };
   const themeOptions: CustomSelectOption[] = [
     { value: "dark", label: isZh ? "暗黑" : "Dark" },
     { value: "black", label: isZh ? "纯黑" : "Black" },
@@ -772,7 +808,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
           <label style={labelStyle}>{t("settings.language")}</label>
           <CustomSelect options={languageOptions} value={language} onChange={(next) => handleLanguageChange(next as "zh" | "en")} triggerWidth={180} menuMinWidth={180} menuAlign="right" />
         </div>
-        <div style={rowStyle}>
+        {/* <div style={rowStyle}>
           <label style={labelStyle}>{t("settings.functionPanelPosition")}</label>
           <div style={layoutSwitchGroupStyle}>
             <button type="button" style={layoutSwitchBtnStyle(functionPanelPosition === "left")} onClick={() => handleFunctionPanelPositionChange("left")} title={t("settings.functionLeftTitle")}>
@@ -784,7 +820,7 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
               <span style={btnTextStyle}>{t("settings.functionRight")}</span>
             </button>
           </div>
-        </div>
+        </div> */}
         {/* <div
           style={{
             borderTop: "1px solid var(--border-color, #333)",
@@ -832,6 +868,24 @@ const UniversalSettings: React.FC<UniversalSettingsProps> = ({ t, language, onLa
           <button type="button" style={toggleSwitchStyle(autoStartEnabled)} onClick={handleAutoStartToggle} disabled={autoStartLoading} title={autoStartEnabled ? t("settings.disableAutoStart") : t("settings.enableAutoStart")}>
             <span style={toggleKnobStyle(autoStartEnabled)} />
           </button>
+        </div>
+        {/* Max tokens configuration: input + save button, same layout as log size settings */}
+        <div style={rowStyle}>
+          <label style={labelStyle}>{isZh ? "最大 Token 数" : "Max Tokens"}</label>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              flex: "0 1 auto",
+              minWidth: 0,
+            }}
+          >
+            <NumberInput value={String(maxTokens ?? "")} onChange={(val) => setMaxTokens(parseInt(val) || 0)} min={1} step={1024} width={120} align="right" />
+            <button style={primaryButtonStyle} onClick={handleSaveMaxTokens} disabled={savingMaxTokens}>
+              {savingMaxTokens ? (isZh ? "保存中..." : "Saving...") : isZh ? "保存" : "Save"}
+            </button>
+          </div>
         </div>
         {/* Update Check Section */}
         <div

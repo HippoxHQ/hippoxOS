@@ -9,6 +9,8 @@ export interface HippoxAppConfig {
     engine: EngineConfig;
     system: SystemConfig;
     disabled_drivers?: string[];
+    /** Maximum number of tokens the model may generate per response. */
+    max_tokens?: number;
 }
 export interface EngineConfig {
     container_instances: ContainerInstance[];
@@ -234,6 +236,12 @@ export const configCommands = {
     },
     async setDisabledDrivers(disabled: string[]): Promise<void> {
         return await invoke('cmd_set_disabled_drivers', { disabled });
+    },
+    async getMaxTokens(): Promise<number> {
+        return await invoke('cmd_get_max_tokens');
+    },
+    async setMaxTokens(maxTokens: number): Promise<void> {
+        return await invoke('cmd_set_max_tokens', { maxTokens });
     },
     async setConfig(config: HippoxAppConfig): Promise<boolean> {
         return await invoke('cmd_set_config', { config });

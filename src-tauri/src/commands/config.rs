@@ -21,6 +21,15 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> = Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
 pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
+/// Default value for the maximum number of tokens the model is allowed
+/// to generate in a single response.
+///
+/// 4096 (the provider default) is far too small for long structured
+/// outputs such as pixel-animation JSON payloads; 16384 covers those
+/// while staying within the limits supported by the major providers.
+pub const DEFAULT_MAX_TOKENS: u32 = 16384;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HippoxAppConfig {
     pub language: String,
@@ -33,6 +42,9 @@ pub struct HippoxAppConfig {
     pub workspace_config: WorkspaceConfigData,
     #[serde(default)]
     pub disabled_drivers: Vec<String>,
+    /// Maximum number of tokens the model may generate per response.
+    #[serde(default = "default_max_tokens")]
+    pub max_tokens: u32,
     // Image generation instances (text-to-image), independent from LLM instances.
     #[serde(default)]
     pub image_instances: HashMap<String, ImageInstance>,
@@ -52,6 +64,12 @@ pub struct HippoxAppConfig {
     #[serde(default)]
     pub default_audio_instance_id: String,
 }
+
+/// Serde default helper for `max_tokens`.
+fn default_max_tokens() -> u32 {
+    DEFAULT_MAX_TOKENS
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineConfig {
     pub container_instances: Vec<ContainerInstance>,
@@ -225,6 +243,7 @@ impl Default for HippoxAppConfig {
             },
             workspace_config: WorkspaceConfigData::default(),
             disabled_drivers: Vec::new(),
+            max_tokens: DEFAULT_MAX_TOKENS,
             image_instances: HashMap::new(),
             default_image_instance_id: String::new(),
             video_instances: HashMap::new(),
@@ -745,10 +764,19 @@ pub async fn load_config_from_file() -> Result<(), String> {
             } else {
                 config.disabled_drivers = Vec::new();
             }
+            // Fallback for older config files that predate `max_tokens`.
+            if let Some(mt) = full_config.get("max_tokens").and_then(|v| v.as_u64()) {
+                config.max_tokens = mt as u32;
+            } else {
+                config.max_tokens = DEFAULT_MAX_TOKENS;
+            }
             let mut updated_full = full_config.clone();
             if let Some(obj) = updated_full.as_object_mut() {
                 if !obj.contains_key("disabled_drivers") {
                     obj.insert("disabled_drivers".to_string(), serde_json::json!([]));
+                }
+                if !obj.contains_key("max_tokens") {
+                    obj.insert("max_tokens".to_string(), serde_json::json!(DEFAULT_MAX_TOKENS));
                 }
             }
             let mut global_config = HIPPOX_APP_CONFIG.write().await;
@@ -773,6 +801,33 @@ pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), Strin
     save_config_to_file().await?;
     Ok(())
 }
+
+/// Get the configured maximum number of tokens per response.
+///
+/// Falls back to `DEFAULT_MAX_TOKENS` when the field is missing from the
+/// in-memory config (e.g. when an old config file is loaded).
+#[tauri::command]
+pub async fn cmd_get_max_tokens() -> Result<u32, String> {
+    let config = HIPPOX_APP_CONFIG.read().await;
+    let value = if config.max_tokens == 0 { DEFAULT_MAX_TOKENS } else { config.max_tokens };
+    Ok(value)
+}
+
+/// Set the maximum number of tokens per response and persist it.
+///
+/// A value of `0` is rejected; the caller must supply a positive number.
+#[tauri::command]
+pub async fn cmd_set_max_tokens(max_tokens: u32) -> Result<(), String> {
+    if max_tokens == 0 {
+        return Err("max_tokens must be greater than 0".to_string());
+    }
+    let mut config = HIPPOX_APP_CONFIG.write().await;
+    config.max_tokens = max_tokens;
+    drop(config);
+    save_config_to_file().await?;
+    Ok(())
+}
+
 pub async fn save_config_to_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Some(parent) = config_path.parent() {
@@ -794,6 +849,9 @@ pub async fn save_config_to_file() -> Result<(), String> {
         }
         if !obj.contains_key("disabled_drivers") {
             obj.insert("disabled_drivers".to_string(), serde_json::json!([]));
+        }
+        if !obj.contains_key("max_tokens") {
+            obj.insert("max_tokens".to_string(), serde_json::json!(DEFAULT_MAX_TOKENS));
         }
     }
     let content = serde_json::to_string_pretty(&full_config).map_err(|e| e.to_string())?;
