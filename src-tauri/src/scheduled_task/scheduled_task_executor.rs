@@ -153,7 +153,7 @@ impl ScheduledTaskExecutor {
         };
         // Execute the task and wait for completion
         let model = get_default_chat_model_id().await.unwrap_or_default();
-        let options = LLMOptions { max_tokens: Some(crate::commands::config::HIPPOX_APP_CONFIG.read().await.max_tokens), ..Default::default() };
+        let options = LLMOptions { max_tokens: Some(crate::commands::config::APP_CONFIG.read().await.max_tokens), ..Default::default() };
         let exec_result = hippox.execute(&prompt, mode, &model, None, None, disable_drivers_refs, options).await;
         match exec_result {
             HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => {

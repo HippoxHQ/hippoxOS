@@ -1,7 +1,7 @@
 pub mod callback;
 pub mod chat;
 pub mod statistics;
-use crate::commands::{get_hippox_instance, ModelConfig, HIPPOX_APP_CONFIG, HIPPOX_INSTANCES};
+use crate::commands::{get_hippox_instance, ModelConfig, APP_CONFIG, HIPPOX_INSTANCES};
 pub use callback::*;
 pub use chat::*;
 use hippox::{
@@ -110,7 +110,7 @@ pub(crate) async fn init_default_hippox_instance() -> Result<(), String> {
         log::error!("Failed to sync config to Hippox core: {}", e);
     }
     let (skills_dir, default_instance_id) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let skills_dir = config.workspace.skills_dir.clone();
         // Find default instance or first one
         let default_id = config
@@ -130,7 +130,7 @@ pub(crate) async fn init_default_hippox_instance() -> Result<(), String> {
         }
     };
     let instance = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.llm_instances.get(&instance_id).cloned()
     };
     let instance = match instance {
@@ -165,7 +165,7 @@ pub(crate) async fn init_all_hippox_instances() -> Result<(), String> {
         log::error!("Failed to sync config to Hippox core: {}", e);
     }
     let (skills_dir, llm_instances) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         (config.workspace.skills_dir.clone(), config.llm_instances.clone())
     };
     let mut instances = HIPPOX_INSTANCES.write().await;
@@ -227,7 +227,7 @@ pub(crate) async fn create_hippox_instance(instance: &LlmInstance, skills_dir: &
 /// all modalities.
 pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Result<Hippox, String> {
     let (image_instances, default_image_id, video_instances, default_video_id, audio_instances, default_audio_id) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         (
             config.image_instances.clone(),
             config.default_image_instance_id.clone(),
@@ -448,7 +448,7 @@ pub(crate) async fn attach_multimodal_clients_to_hippox(hippox: Hippox) -> Resul
 /// get default hippox instance with chat model
 pub(crate) async fn get_default_hippox_with_chat_model() -> Result<Arc<Hippox>, String> {
     let default_instance_id = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         if config.llm_instances.is_empty() {
             return Err("No LLM instance configured. Please add an LLM configuration in settings.".to_string());
         }
@@ -466,7 +466,7 @@ pub(crate) async fn get_default_hippox_with_chat_model() -> Result<Arc<Hippox>, 
 /// Builds a dedicated `Hippox` instance for the default image-generation instance configured in the app config.
 pub async fn get_default_hippox_with_image_model() -> Result<Arc<Hippox>, String> {
     let (provider_str, api_key, api_base) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let id = &config.default_image_instance_id;
         if id.is_empty() {
             return Err("No default image instance configured".to_string());
@@ -485,7 +485,7 @@ pub async fn get_default_hippox_with_image_model() -> Result<Arc<Hippox>, String
 /// Builds a dedicated `Hippox` instance for the default audio-generation instance configured in the app config.
 pub async fn get_default_hippox_with_audio_model() -> Result<Arc<Hippox>, String> {
     let (provider_str, api_key, api_base) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let id = &config.default_audio_instance_id;
         if id.is_empty() {
             return Err("No default audio instance configured".to_string());
@@ -505,7 +505,7 @@ pub async fn get_default_hippox_with_audio_model() -> Result<Arc<Hippox>, String
 /// instance configured in the app config.
 pub async fn get_default_hippox_with_video_model() -> Result<Arc<Hippox>, String> {
     let (provider_str, api_key, api_base) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let id = &config.default_video_instance_id;
         if id.is_empty() {
             return Err("No default video instance configured".to_string());
@@ -522,7 +522,7 @@ pub async fn get_default_hippox_with_video_model() -> Result<Arc<Hippox>, String
 }
 
 pub(crate) async fn sync_all_to_hippox_core() -> Result<(), String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     for instance in &config.engine.database_instances {
         sync_database_instance_to_core(instance).await?;
     }

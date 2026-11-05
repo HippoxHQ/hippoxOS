@@ -1,6 +1,6 @@
 use crate::callback::{HippoXWorkflowCallback, HippoxDriverCallback};
 use crate::commands::{
-    cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file, TaskInfo, HIPPOX_APP_CONFIG,
+    cmd_get_disabled_drivers, get_default_chat_model_id, increment_session_chat_count, load_config_from_file, TaskInfo, APP_CONFIG,
 };
 use crate::context::{get_conversation_history, store_user_message, Context};
 use crate::hippox_core::{get_default_hippox_with_chat_model, init_all_hippox_instances};
@@ -84,7 +84,7 @@ async fn build_enhanced_message(mem: Option<&MemContext>, session_id: &str, mess
 }
 /// Resolve the provider and default model of the current default LLM instance.
 async fn resolve_default_chat_provider_and_model() -> (String, String) {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = config
         .llm_instances
         .iter()
@@ -153,7 +153,7 @@ pub async fn cmd_send_chat_message_async(
     // Resolve the provider and model so the statistics ledger can attribute
     // the message to a concrete provider/model pair.
     let (provider, model) = resolve_default_chat_provider_and_model().await;
-    let options = hippox::LLMOptions { max_tokens: Some(crate::commands::config::HIPPOX_APP_CONFIG.read().await.max_tokens), ..Default::default() };
+    let options = hippox::LLMOptions { max_tokens: Some(crate::commands::config::APP_CONFIG.read().await.max_tokens), ..Default::default() };
     // Handle HippoxResult from submit
     let core_task_id = match hippox.submit(
         &enhanced_message,

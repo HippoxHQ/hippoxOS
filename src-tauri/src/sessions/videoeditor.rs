@@ -3,13 +3,14 @@ use crate::commands::get_settings_dir;
 use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
 use crate::subsystem::get_session_cover_path;
+use crate::subsystem::load_material_metadata;
 use crate::subsystem::videoeditor::get_downloads_root_dir;
 use crate::subsystem::videoeditor::material::{register_material, UploadResult};
 use crate::subsystem::videoeditor::track::calculate_max_track_time;
 use crate::subsystem::videoeditor::track::table::TrackTable;
 use crate::subsystem::videoeditor::{
-    emit_refresh_timeline_and_player, load_metadata, load_session_config, load_session_metadata, save_session_config, save_session_metadata,
-    save_session_tracks, update_download_material_mapping, update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
+    emit_refresh_timeline_and_player, load_session_config, load_session_metadata, save_session_config, save_session_metadata, save_session_tracks,
+    update_download_material_mapping, update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
 };
 use crate::subsystem::NLEEditMode;
 use chrono::{Duration, Local};
@@ -94,7 +95,7 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
             debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
         }
         // Load the material metadata
-        let material_metadata = match load_metadata(&sid, &MaterialType::Video, &material_id) {
+        let material_metadata = match load_material_metadata(&sid, &MaterialType::Video, &material_id) {
             Ok(m) => {
                 debug!("process_video_file_background - Material metadata loaded successfully");
                 m
@@ -206,7 +207,7 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
                             task_id, material_id
                         );
                     }
-                    if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Audio, &material_id) {
+                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Audio, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
                             let _ = tracks.add_material_track(&sid, &material_id, None, None, "audio", &material_metadata, None);
@@ -303,7 +304,7 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
                             task_id, material_id
                         );
                     }
-                    if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Image, &material_id) {
+                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Image, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
                             let _ = tracks.add_material_track(&sid, &material_id, None, None, "image", &material_metadata, None);
@@ -397,7 +398,7 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
                         let _ = update_download_material_mapping(&task_id, &sid, &material_id);
                         debug!("process_text_files_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
                     }
-                    if let Ok(material_metadata) = load_metadata(&sid, &MaterialType::Text, &material_id) {
+                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Text, &material_id) {
                         if let Ok(mut metadata) = load_session_metadata(&sid) {
                             let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
                             let _ = tracks.add_material_track(&sid, &material_id, None, None, "text", &material_metadata, None);
@@ -468,7 +469,7 @@ fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_pat
         Ok(upload_result) => {
             let material_id = upload_result.id;
             debug!("process_video_file - Video material inserted: {}", material_id);
-            if let Ok(material_metadata) = load_metadata(session_id, &MaterialType::Video, &material_id) {
+            if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Video, &material_id) {
                 let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
                 let _ = tracks.add_material_track(session_id, &material_id, None, None, "video", &material_metadata, None);
                 metadata.tracks = tracks.0;
@@ -493,7 +494,7 @@ fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_pat
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_audio_files - Audio material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_metadata(session_id, &MaterialType::Audio, &material_id) {
+                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Audio, &material_id) {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(session_id, &material_id, None, None, "audio", &material_metadata, None);
                     *tracks = track_table.0;
@@ -519,7 +520,7 @@ fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_pat
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_image_files - Image material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_metadata(session_id, &MaterialType::Image, &material_id) {
+                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Image, &material_id) {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(session_id, &material_id, None, None, "image", &material_metadata, None);
                     *tracks = track_table.0;
@@ -545,7 +546,7 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_text_files - Text material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_metadata(session_id, &MaterialType::Text, &material_id) {
+                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Text, &material_id) {
                     let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
                     let _ = track_table.add_material_track(session_id, &material_id, None, None, "text", &material_metadata, None);
                     *tracks = track_table.0;

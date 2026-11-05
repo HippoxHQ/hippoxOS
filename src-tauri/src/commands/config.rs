@@ -19,19 +19,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-pub static HIPPOX_APP_CONFIG: Lazy<Arc<RwLock<HippoxAppConfig>>> = Lazy::new(|| Arc::new(RwLock::new(HippoxAppConfig::default())));
+pub static APP_CONFIG: Lazy<Arc<RwLock<AppConfig>>> = Lazy::new(|| Arc::new(RwLock::new(AppConfig::default())));
 pub static HIPPOX_INSTANCES: Lazy<Arc<RwLock<HashMap<String, Arc<Hippox>>>>> = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
-
 /// Default value for the maximum number of tokens the model is allowed
 /// to generate in a single response.
-///
-/// 4096 (the provider default) is far too small for long structured
-/// outputs such as pixel-animation JSON payloads; 16384 covers those
-/// while staying within the limits supported by the major providers.
 pub const DEFAULT_MAX_TOKENS: u32 = 16384;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HippoxAppConfig {
+pub struct AppConfig {
     pub language: String,
     pub theme: String,
     pub llm_instances: HashMap<String, LlmInstance>,
@@ -64,12 +58,10 @@ pub struct HippoxAppConfig {
     #[serde(default)]
     pub default_audio_instance_id: String,
 }
-
 /// Serde default helper for `max_tokens`.
 fn default_max_tokens() -> u32 {
     DEFAULT_MAX_TOKENS
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineConfig {
     pub container_instances: Vec<ContainerInstance>,
@@ -215,7 +207,7 @@ pub struct GithubConfig {
     pub token: String,
     pub api_url: String,
 }
-impl Default for HippoxAppConfig {
+impl Default for AppConfig {
     fn default() -> Self {
         let instances = HashMap::new();
         let default_id = String::new();
@@ -272,7 +264,7 @@ pub struct SaveContainerInstanceRequest {
 }
 #[tauri::command]
 pub async fn cmd_save_container_instance(request: SaveContainerInstanceRequest) -> Result<ContainerInstance, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
     let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -308,10 +300,10 @@ pub async fn cmd_save_container_instance(request: SaveContainerInstanceRequest) 
 #[tauri::command]
 pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.engine.container_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.engine.container_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
@@ -322,7 +314,7 @@ pub async fn cmd_delete_container_instance(instance_id: String) -> Result<bool, 
 }
 #[tauri::command]
 pub async fn cmd_toggle_container_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(instance) = config.engine.container_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
@@ -337,7 +329,7 @@ pub async fn cmd_toggle_container_instance(instance_id: String, enabled: bool) -
 }
 #[tauri::command]
 pub async fn cmd_get_container_instances() -> Result<Vec<ContainerInstance>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.engine.container_instances.clone())
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -357,7 +349,7 @@ pub struct SaveDatabaseInstanceRequest {
 }
 #[tauri::command]
 pub async fn cmd_save_database_instance(request: SaveDatabaseInstanceRequest) -> Result<DatabaseInstance, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
     let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -394,10 +386,10 @@ pub async fn cmd_save_database_instance(request: SaveDatabaseInstanceRequest) ->
 #[tauri::command]
 pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.engine.database_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.engine.database_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
@@ -408,7 +400,7 @@ pub async fn cmd_delete_database_instance(instance_id: String) -> Result<bool, S
 }
 #[tauri::command]
 pub async fn cmd_toggle_database_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(instance) = config.engine.database_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
@@ -423,7 +415,7 @@ pub async fn cmd_toggle_database_instance(instance_id: String, enabled: bool) ->
 }
 #[tauri::command]
 pub async fn cmd_get_database_instances() -> Result<Vec<DatabaseInstance>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.engine.database_instances.clone())
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -443,7 +435,7 @@ pub struct SaveNetworkInstanceRequest {
 }
 #[tauri::command]
 pub async fn cmd_save_network_instance(request: SaveNetworkInstanceRequest) -> Result<NetworkInstance, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
     let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -480,10 +472,10 @@ pub async fn cmd_save_network_instance(request: SaveNetworkInstanceRequest) -> R
 #[tauri::command]
 pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.engine.network_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.engine.network_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
@@ -494,7 +486,7 @@ pub async fn cmd_delete_network_instance(instance_id: String) -> Result<bool, St
 }
 #[tauri::command]
 pub async fn cmd_toggle_network_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(instance) = config.engine.network_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
@@ -509,7 +501,7 @@ pub async fn cmd_toggle_network_instance(instance_id: String, enabled: bool) -> 
 }
 #[tauri::command]
 pub async fn cmd_get_network_instances() -> Result<Vec<NetworkInstance>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.engine.network_instances.clone())
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -533,7 +525,7 @@ pub struct SaveNotificationInstanceRequest {
 }
 #[tauri::command]
 pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceRequest) -> Result<NotificationInstance, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let now = chrono::Local::now().to_rfc3339();
     let is_new = request.id.is_none();
     let instance_id = request.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -574,10 +566,10 @@ pub async fn cmd_save_notification_instance(request: SaveNotificationInstanceReq
 #[tauri::command]
 pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<bool, String> {
     let instance_type = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.engine.notification_instances.iter().find(|i| i.id == instance_id).map(|i| i.instance_type.clone())
     };
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.engine.notification_instances.retain(|i| i.id != instance_id);
     drop(config);
     save_config_to_file().await?;
@@ -588,7 +580,7 @@ pub async fn cmd_delete_notification_instance(instance_id: String) -> Result<boo
 }
 #[tauri::command]
 pub async fn cmd_toggle_notification_instance(instance_id: String, enabled: bool) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(instance) = config.engine.notification_instances.iter_mut().find(|i| i.id == instance_id) {
         instance.enabled = enabled;
         instance.updated_at = chrono::Local::now().to_rfc3339();
@@ -603,7 +595,7 @@ pub async fn cmd_toggle_notification_instance(instance_id: String, enabled: bool
 }
 #[tauri::command]
 pub async fn cmd_get_notification_instances() -> Result<Vec<NotificationInstance>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.engine.notification_instances.clone())
 }
 #[tauri::command]
@@ -619,13 +611,13 @@ pub enum ConfigPath {
     System(String),
 }
 #[tauri::command]
-pub async fn cmd_get_config() -> Result<HippoxAppConfig, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+pub async fn cmd_get_config() -> Result<AppConfig, String> {
+    let config = APP_CONFIG.read().await;
     Ok(config.clone())
 }
 #[tauri::command]
-pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
-    let mut global_config = HIPPOX_APP_CONFIG.write().await;
+pub async fn cmd_set_config(config: AppConfig) -> Result<bool, String> {
+    let mut global_config = APP_CONFIG.write().await;
     *global_config = config;
     if let Err(e) = save_config_to_file().await {
         log::error!("Failed to save config to file: {}", e);
@@ -634,7 +626,7 @@ pub async fn cmd_set_config(config: HippoxAppConfig) -> Result<bool, String> {
 }
 #[tauri::command]
 pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     match path {
         ConfigPath::Language => {
             if let Some(lang) = value.as_str() {
@@ -721,7 +713,7 @@ pub async fn cmd_update_config(path: ConfigPath, value: serde_json::Value) -> Re
 }
 #[tauri::command]
 pub async fn cmd_get_config_value(path: ConfigPath) -> Result<serde_json::Value, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let value = match path {
         ConfigPath::Language => serde_json::json!(config.language),
         ConfigPath::Theme => serde_json::json!(config.theme),
@@ -751,7 +743,7 @@ pub async fn load_config_from_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
         let full_config: serde_json::Value = serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}));
-        if let Ok(mut config) = serde_json::from_str::<HippoxAppConfig>(&content) {
+        if let Ok(mut config) = serde_json::from_str::<AppConfig>(&content) {
             if let Some(ws_config) = full_config.get("workspace_config") {
                 if let Ok(ws) = serde_json::from_value(ws_config.clone()) {
                     config.workspace_config = ws;
@@ -779,7 +771,7 @@ pub async fn load_config_from_file() -> Result<(), String> {
                     obj.insert("max_tokens".to_string(), serde_json::json!(DEFAULT_MAX_TOKENS));
                 }
             }
-            let mut global_config = HIPPOX_APP_CONFIG.write().await;
+            let mut global_config = APP_CONFIG.write().await;
             *global_config = config;
         }
     }
@@ -795,24 +787,22 @@ pub async fn cmd_get_disabled_drivers() -> Result<Vec<String>, String> {
 }
 #[tauri::command]
 pub async fn cmd_set_disabled_drivers(disabled: Vec<String>) -> Result<(), String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.disabled_drivers = disabled;
     drop(config);
     save_config_to_file().await?;
     Ok(())
 }
-
 /// Get the configured maximum number of tokens per response.
 ///
 /// Falls back to `DEFAULT_MAX_TOKENS` when the field is missing from the
 /// in-memory config (e.g. when an old config file is loaded).
 #[tauri::command]
 pub async fn cmd_get_max_tokens() -> Result<u32, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let value = if config.max_tokens == 0 { DEFAULT_MAX_TOKENS } else { config.max_tokens };
     Ok(value)
 }
-
 /// Set the maximum number of tokens per response and persist it.
 ///
 /// A value of `0` is rejected; the caller must supply a positive number.
@@ -821,13 +811,12 @@ pub async fn cmd_set_max_tokens(max_tokens: u32) -> Result<(), String> {
     if max_tokens == 0 {
         return Err("max_tokens must be greater than 0".to_string());
     }
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     config.max_tokens = max_tokens;
     drop(config);
     save_config_to_file().await?;
     Ok(())
 }
-
 pub async fn save_config_to_file() -> Result<(), String> {
     let config_path = get_config_file_path();
     if let Some(parent) = config_path.parent() {
@@ -841,7 +830,7 @@ pub async fn save_config_to_file() -> Result<(), String> {
     } else {
         serde_json::json!({})
     };
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let main_config = serde_json::to_value(&*config).map_err(|e| e.to_string())?;
     if let Some(obj) = full_config.as_object_mut() {
         for (key, value) in main_config.as_object().unwrap() {
@@ -972,7 +961,7 @@ pub async fn cmd_set_max_dialog_size(max_size_mb: u64) -> Result<(), String> {
 }
 pub async fn reinit_single_hippox(instance_id: &str) -> Result<(), String> {
     let (instance, skills_dir) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let instance = config.llm_instances.get(instance_id).ok_or_else(|| format!("Instance not found: {}", instance_id))?.clone();
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)
@@ -1001,7 +990,7 @@ pub async fn get_hippox_instance(instance_id: &str) -> Result<Arc<Hippox>, Strin
         }
     }
     let (instance_config, skills_dir) = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         let instance = config.llm_instances.get(instance_id).ok_or_else(|| format!("LLM instance not found in config: {}", instance_id))?.clone();
         let skills_dir = config.workspace.skills_dir.clone();
         (instance, skills_dir)

@@ -1,5 +1,5 @@
 use crate::commands::types::{StepInfo, TaskInfo};
-use crate::commands::{load_config_from_file, write_log, HIPPOX_APP_CONFIG};
+use crate::commands::{load_config_from_file, write_log, APP_CONFIG};
 use crate::scheduled_task_pool::TaskPool;
 use crate::workspace::get_default_workspace;
 use hippox::ChatModelProvider;

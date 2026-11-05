@@ -228,14 +228,11 @@ pub async fn cmd_download_and_install_update(app_handle: AppHandle, download_url
         .await
         .map_err(|e| {
             if e == "cancelled" {
-                eprintln!("[update] Generation {} aborted during streaming (cancelled)", my_gen);
             } else {
-                eprintln!("[update] Generation {} download failed: {}", my_gen, e);
             }
             e
         })?;
     if !is_generation_active(my_gen) {
-        eprintln!("[update] Generation {} cancelled/superseded; discarding bytes", my_gen);
         log::info!("Update download cancelled by user; discarding bytes");
         let _ = std::fs::remove_file(&file_path);
         return Err("cancelled".to_string());

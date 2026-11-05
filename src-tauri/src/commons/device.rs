@@ -1,3 +1,4 @@
+// Shared audio device helpers for the screen-record and audio-record modules.
 use rodio::cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -155,17 +156,19 @@ pub fn open_microphone_device() -> Result<rodio::cpal::Device, String> {
     }
     device.ok_or_else(|| "no default input device".to_string())
 }
-/// build an input stream on the default OUTPUT device.
+/// macOS: build an input stream on the default OUTPUT device.
 #[cfg(target_os = "macos")]
 pub fn open_system_audio_device() -> Result<rodio::cpal::Device, String> {
     let host = rodio::cpal::default_host();
     host.default_output_device().ok_or_else(|| "no default output device".to_string())
 }
-/// find a PulseAudio / PipeWire monitor source.
+/// Linux: find a PulseAudio / PipeWire monitor source.
 #[cfg(target_os = "linux")]
 pub fn open_system_audio_device() -> Result<rodio::cpal::Device, String> {
     let host = rodio::cpal::default_host();
     let devices = host.input_devices().map_err(|e| format!("input_devices failed: {e}"))?;
+    // Prefer the monitor that matches the default sink name, then fall
+    // back to the first monitor we find.
     let default_sink = default_pulse_sink_name();
     let mut first_monitor: Option<rodio::cpal::Device> = None;
     for device in devices {
@@ -185,7 +188,7 @@ pub fn open_system_audio_device() -> Result<rodio::cpal::Device, String> {
     }
     first_monitor.ok_or_else(|| "no PulseAudio monitor source found".to_string())
 }
-/// ask PulseAudio for the default sink name.
+/// Linux helper: ask PulseAudio for the default sink name.
 #[cfg(target_os = "linux")]
 pub fn default_pulse_sink_name() -> Option<String> {
     let output = std::process::Command::new("pactl").arg("get-default-sink").output().ok()?;
@@ -199,7 +202,8 @@ pub fn default_pulse_sink_name() -> Option<String> {
         Some(name)
     }
 }
-/// Build a CPAL input stream that updates a smoothed level into the given atomics.
+/// Build a CPAL input stream that updates a smoothed level into the given
+/// atomics.
 pub fn build_input_stream(
     device: &rodio::cpal::Device,
     level_bits: &'static AtomicU32,
@@ -267,7 +271,8 @@ pub fn build_input_stream(
     stream.play().map_err(|e| format!("stream.play() failed: {e}"))?;
     Ok(stream)
 }
-/// Build a CPAL input stream that captures the RAW PCM samples into a process-global ring buffer, for real audio recording.
+/// Build a CPAL input stream that captures the RAW PCM samples into a
+/// process-global ring buffer, for real audio recording.
 pub fn build_pcm_input_stream(device: &rodio::cpal::Device, target_buf: &'static Mutex<VecDeque<i16>>) -> Result<rodio::cpal::Stream, String> {
     let config = device.default_input_config().map_err(|e| format!("default_input_config failed: {e}"))?;
     let sample_format = config.sample_format();
@@ -355,7 +360,7 @@ pub fn ensure_audio_level_service() -> Result<(), String> {
             }
         }
     }
-    // rebuild the stream if it is missing OR if the worker thread has reported itself inactive.
+    // System audio: rebuild the stream if it is missing OR if the worker thread has reported itself inactive.
     #[cfg(target_os = "windows")]
     {
         let system_stream_alive = crate::subsystem::SYSTEM_ACTIVE.load(Ordering::Relaxed);

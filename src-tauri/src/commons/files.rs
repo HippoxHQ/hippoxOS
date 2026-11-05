@@ -274,6 +274,68 @@ impl FileUtils {
         }
         Ok(())
     }
+    /// Kill any process holding this path, then forcibly delete file or directory.
+    pub fn force_delete_path_forceful(path: &Path) -> FileResult<()> {
+        if !path.exists() {
+            return Ok(());
+        }
+        let path_str = path.to_string_lossy().to_string();
+        // Try normal removal first (fastest path).
+        if path.is_dir() {
+            let _ = Self::remove_dir_all_force(path);
+        } else {
+            let _ = Self::force_delete_file(path);
+        }
+        if !path.exists() {
+            return Ok(());
+        }
+        // Kill processes that may hold a handle to the path.
+        #[cfg(target_os = "windows")]
+        {
+            // Match any process whose command line contains the path.
+            let _ = crate::commons::hidden_cmd("powershell")
+                .args(&[
+                    "-Command",
+                    &format!(
+                        "Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -like '*{}*' }} | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}",
+                        path_str.replace('\\', "\\\\").replace('\'', "''")
+                    ),
+                ])
+                .output();
+            // Also kill ffmpeg/ffprobe outright - they are the usual offenders.
+            let _ = crate::commons::hidden_cmd("taskkill").args(&["/F", "/IM", "ffmpeg.exe", "/T"]).output();
+            let _ = crate::commons::hidden_cmd("taskkill").args(&["/F", "/IM", "ffprobe.exe", "/T"]).output();
+            // Give the OS a moment to release the handles.
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            // Retry deletion via cmd and powershell.
+            if path.is_dir() {
+                let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
+            } else {
+                let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
+            }
+            if path.exists() {
+                let _ = crate::commons::hidden_cmd("powershell")
+                    .args(&["-Command", &format!("Remove-Item -Path '{}' -Recurse -Force -ErrorAction SilentlyContinue", path_str)])
+                    .output();
+            }
+        }
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        {
+            // fuser -k kills any process using the path (file or mount).
+            let _ = crate::commons::hidden_cmd("fuser").args(&["-k", &path_str]).output();
+            // Fallback: kill ffmpeg/ffprobe by name.
+            let _ = crate::commons::hidden_cmd("pkill").args(&["-9", "-f", "ffmpeg"]).output();
+            let _ = crate::commons::hidden_cmd("pkill").args(&["-9", "-f", "ffprobe"]).output();
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            // Retry: unlock flags and rm -rf.
+            let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
+            let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
+        }
+        if path.exists() {
+            return Err(FileError::RemoveError(format!("Force delete failed: {}", path_str)));
+        }
+        Ok(())
+    }
     pub fn delete_cache_files(cache_dir: &Path, file_name: &str) -> FileResult<()> {
         if !cache_dir.exists() {
             return Ok(());

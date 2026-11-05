@@ -1,5 +1,5 @@
 use crate::{
-    commands::{get_hippox_instance, save_config_to_file, LlmInstanceForFrontend, ModelConfig, HIPPOX_APP_CONFIG},
+    commands::{get_hippox_instance, save_config_to_file, LlmInstanceForFrontend, ModelConfig, APP_CONFIG},
     hippox_core::LlmInstance,
 };
 use hippox::{
@@ -23,7 +23,7 @@ pub struct AddLlmInstanceRequest {
 }
 #[tauri::command]
 pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
         instance.models.push(model);
@@ -35,7 +35,7 @@ pub async fn cmd_add_llm_model(model: ModelConfig) -> Result<bool, String> {
 }
 #[tauri::command]
 pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
         instance.models.retain(|m| m.name != model_name);
@@ -47,7 +47,7 @@ pub async fn cmd_remove_llm_model(model_name: String) -> Result<bool, String> {
 }
 #[tauri::command]
 pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_llm_instance_id.clone();
     if let Some(instance) = config.llm_instances.get_mut(&default_id) {
         for model in &mut instance.models {
@@ -63,12 +63,12 @@ pub async fn cmd_set_default_llm_model(model_name: String) -> Result<bool, Strin
 }
 #[tauri::command]
 pub async fn cmd_get_default_llm_instance_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.default_llm_instance_id.clone())
 }
 #[tauri::command]
 pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<String, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
     let is_first_instance = config.llm_instances.is_empty();
@@ -100,7 +100,7 @@ pub async fn cmd_add_llm_instance(request: AddLlmInstanceRequest) -> Result<Stri
 }
 #[tauri::command]
 pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceForFrontend) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(existing) = config.llm_instances.get_mut(&instance_id) {
         existing.name = instance.name;
         existing.provider = instance.provider;
@@ -118,7 +118,7 @@ pub async fn cmd_update_llm_instance(instance_id: String, instance: LlmInstanceF
 }
 #[tauri::command]
 pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.llm_instances.len() <= 1 {
         return Err("Cannot delete the last instance".to_string());
     }
@@ -140,7 +140,7 @@ pub async fn cmd_delete_llm_instance(instance_id: String) -> Result<bool, String
 }
 #[tauri::command]
 pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.llm_instances.contains_key(&instance_id) {
         for (_, instance) in config.llm_instances.iter_mut() {
             instance.is_default = Some(false);
@@ -158,12 +158,12 @@ pub async fn cmd_set_default_llm_instance(instance_id: String) -> Result<bool, S
 }
 #[tauri::command]
 pub async fn cmd_get_llm_instance(instance_id: String) -> Result<Option<LlmInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.llm_instances.get(&instance_id).map(|instance| instance.into()))
 }
 #[tauri::command]
 pub async fn cmd_get_llm_instances() -> Result<HashMap<String, LlmInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_llm_instance_id;
     let mut result = HashMap::new();
     for (key, instance) in config.llm_instances.iter() {
@@ -491,7 +491,7 @@ pub struct AddImageInstanceRequest {
 /// Adds a new image generation instance.
 #[tauri::command]
 pub async fn cmd_add_image_instance(request: AddImageInstanceRequest) -> Result<String, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
     let is_first_instance = config.image_instances.is_empty();
@@ -524,7 +524,7 @@ pub async fn cmd_add_image_instance(request: AddImageInstanceRequest) -> Result<
 /// Updates an existing image generation instance.
 #[tauri::command]
 pub async fn cmd_update_image_instance(instance_id: String, instance: ImageInstanceForFrontend) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(existing) = config.image_instances.get_mut(&instance_id) {
         existing.name = instance.name;
         existing.provider = instance.provider;
@@ -543,7 +543,7 @@ pub async fn cmd_update_image_instance(instance_id: String, instance: ImageInsta
 /// Deletes an image generation instance.
 #[tauri::command]
 pub async fn cmd_delete_image_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.image_instances.remove(&instance_id).is_some() {
         if config.default_image_instance_id == instance_id {
             if let Some(first_id) = config.image_instances.keys().next().cloned() {
@@ -565,7 +565,7 @@ pub async fn cmd_delete_image_instance(instance_id: String) -> Result<bool, Stri
 /// Sets the default image generation instance.
 #[tauri::command]
 pub async fn cmd_set_default_image_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.image_instances.contains_key(&instance_id) {
         for (_, instance) in config.image_instances.iter_mut() {
             instance.is_default = Some(false);
@@ -584,13 +584,13 @@ pub async fn cmd_set_default_image_instance(instance_id: String) -> Result<bool,
 /// Gets a single image generation instance by ID.
 #[tauri::command]
 pub async fn cmd_get_image_instance(instance_id: String) -> Result<Option<ImageInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.image_instances.get(&instance_id).map(|instance| instance.into()))
 }
 /// Gets all image generation instances.
 #[tauri::command]
 pub async fn cmd_get_image_instances() -> Result<HashMap<String, ImageInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_image_instance_id;
     let mut result = HashMap::new();
     for (key, instance) in config.image_instances.iter() {
@@ -603,7 +603,7 @@ pub async fn cmd_get_image_instances() -> Result<HashMap<String, ImageInstanceFo
 /// Gets the default image generation instance ID.
 #[tauri::command]
 pub async fn cmd_get_default_image_instance_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.default_image_instance_id.clone())
 }
 /// Video generation instance stored in the app config.
@@ -671,7 +671,7 @@ pub struct AddVideoInstanceRequest {
 /// Adds a new video generation instance.
 #[tauri::command]
 pub async fn cmd_add_video_instance(request: AddVideoInstanceRequest) -> Result<String, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
     let is_first_instance = config.video_instances.is_empty();
@@ -704,7 +704,7 @@ pub async fn cmd_add_video_instance(request: AddVideoInstanceRequest) -> Result<
 /// Updates an existing video generation instance.
 #[tauri::command]
 pub async fn cmd_update_video_instance(instance_id: String, instance: VideoInstanceForFrontend) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(existing) = config.video_instances.get_mut(&instance_id) {
         existing.name = instance.name;
         existing.provider = instance.provider;
@@ -723,7 +723,7 @@ pub async fn cmd_update_video_instance(instance_id: String, instance: VideoInsta
 /// Deletes a video generation instance.
 #[tauri::command]
 pub async fn cmd_delete_video_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.video_instances.remove(&instance_id).is_some() {
         if config.default_video_instance_id == instance_id {
             if let Some(first_id) = config.video_instances.keys().next().cloned() {
@@ -745,7 +745,7 @@ pub async fn cmd_delete_video_instance(instance_id: String) -> Result<bool, Stri
 /// Sets the default video generation instance.
 #[tauri::command]
 pub async fn cmd_set_default_video_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.video_instances.contains_key(&instance_id) {
         for (_, instance) in config.video_instances.iter_mut() {
             instance.is_default = Some(false);
@@ -764,13 +764,13 @@ pub async fn cmd_set_default_video_instance(instance_id: String) -> Result<bool,
 /// Gets a single video generation instance by ID.
 #[tauri::command]
 pub async fn cmd_get_video_instance(instance_id: String) -> Result<Option<VideoInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.video_instances.get(&instance_id).map(|instance| instance.into()))
 }
 /// Gets all video generation instances.
 #[tauri::command]
 pub async fn cmd_get_video_instances() -> Result<HashMap<String, VideoInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_video_instance_id;
     let mut result = HashMap::new();
     for (key, instance) in config.video_instances.iter() {
@@ -783,7 +783,7 @@ pub async fn cmd_get_video_instances() -> Result<HashMap<String, VideoInstanceFo
 /// Gets the default video generation instance ID.
 #[tauri::command]
 pub async fn cmd_get_default_video_instance_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.default_video_instance_id.clone())
 }
 /// Audio generation instance stored in the app config.
@@ -851,7 +851,7 @@ pub struct AddAudioInstanceRequest {
 /// Adds a new audio generation instance.
 #[tauri::command]
 pub async fn cmd_add_audio_instance(request: AddAudioInstanceRequest) -> Result<String, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let id = Uuid::new_v4().to_string();
     let now = chrono::Local::now().to_rfc3339();
     let is_first_instance = config.audio_instances.is_empty();
@@ -884,7 +884,7 @@ pub async fn cmd_add_audio_instance(request: AddAudioInstanceRequest) -> Result<
 /// Updates an existing audio generation instance.
 #[tauri::command]
 pub async fn cmd_update_audio_instance(instance_id: String, instance: AudioInstanceForFrontend) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if let Some(existing) = config.audio_instances.get_mut(&instance_id) {
         existing.name = instance.name;
         existing.provider = instance.provider;
@@ -903,7 +903,7 @@ pub async fn cmd_update_audio_instance(instance_id: String, instance: AudioInsta
 /// Deletes an audio generation instance.
 #[tauri::command]
 pub async fn cmd_delete_audio_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.audio_instances.remove(&instance_id).is_some() {
         if config.default_audio_instance_id == instance_id {
             if let Some(first_id) = config.audio_instances.keys().next().cloned() {
@@ -925,7 +925,7 @@ pub async fn cmd_delete_audio_instance(instance_id: String) -> Result<bool, Stri
 /// Sets the default audio generation instance.
 #[tauri::command]
 pub async fn cmd_set_default_audio_instance(instance_id: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     if config.audio_instances.contains_key(&instance_id) {
         for (_, instance) in config.audio_instances.iter_mut() {
             instance.is_default = Some(false);
@@ -944,13 +944,13 @@ pub async fn cmd_set_default_audio_instance(instance_id: String) -> Result<bool,
 /// Gets a single audio generation instance by ID.
 #[tauri::command]
 pub async fn cmd_get_audio_instance(instance_id: String) -> Result<Option<AudioInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.audio_instances.get(&instance_id).map(|instance| instance.into()))
 }
 /// Gets all audio generation instances.
 #[tauri::command]
 pub async fn cmd_get_audio_instances() -> Result<HashMap<String, AudioInstanceForFrontend>, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_audio_instance_id;
     let mut result = HashMap::new();
     for (key, instance) in config.audio_instances.iter() {
@@ -963,13 +963,13 @@ pub async fn cmd_get_audio_instances() -> Result<HashMap<String, AudioInstanceFo
 /// Gets the default audio generation instance ID.
 #[tauri::command]
 pub async fn cmd_get_default_audio_instance_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     Ok(config.default_audio_instance_id.clone())
 }
 /// Adds a new model to the default image instance.
 #[tauri::command]
 pub async fn cmd_add_image_model(model: ModelConfig) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_image_instance_id.clone();
     if let Some(instance) = config.image_instances.get_mut(&default_id) {
         instance.models.push(model);
@@ -982,7 +982,7 @@ pub async fn cmd_add_image_model(model: ModelConfig) -> Result<bool, String> {
 /// Removes a model from the default image instance.
 #[tauri::command]
 pub async fn cmd_remove_image_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_image_instance_id.clone();
     if let Some(instance) = config.image_instances.get_mut(&default_id) {
         instance.models.retain(|m| m.name != model_name);
@@ -995,7 +995,7 @@ pub async fn cmd_remove_image_model(model_name: String) -> Result<bool, String> 
 /// Sets the default model inside the default image instance.
 #[tauri::command]
 pub async fn cmd_set_default_image_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_image_instance_id.clone();
     if let Some(instance) = config.image_instances.get_mut(&default_id) {
         for model in &mut instance.models {
@@ -1012,7 +1012,7 @@ pub async fn cmd_set_default_image_model(model_name: String) -> Result<bool, Str
 /// Gets the default model name of the default image instance.
 #[tauri::command]
 pub async fn cmd_get_default_image_model() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_image_instance_id;
     if let Some(instance) = config.image_instances.get(default_id) {
         Ok(instance.default_model.clone())
@@ -1023,7 +1023,7 @@ pub async fn cmd_get_default_image_model() -> Result<String, String> {
 /// Adds a new model to the default video instance.
 #[tauri::command]
 pub async fn cmd_add_video_model(model: ModelConfig) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_video_instance_id.clone();
     if let Some(instance) = config.video_instances.get_mut(&default_id) {
         instance.models.push(model);
@@ -1036,7 +1036,7 @@ pub async fn cmd_add_video_model(model: ModelConfig) -> Result<bool, String> {
 /// Removes a model from the default video instance.
 #[tauri::command]
 pub async fn cmd_remove_video_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_video_instance_id.clone();
     if let Some(instance) = config.video_instances.get_mut(&default_id) {
         instance.models.retain(|m| m.name != model_name);
@@ -1051,7 +1051,7 @@ pub async fn cmd_remove_video_model(model_name: String) -> Result<bool, String> 
 /// Mirrors `cmd_set_default_llm_model`.
 #[tauri::command]
 pub async fn cmd_set_default_video_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_video_instance_id.clone();
     if let Some(instance) = config.video_instances.get_mut(&default_id) {
         for model in &mut instance.models {
@@ -1068,7 +1068,7 @@ pub async fn cmd_set_default_video_model(model_name: String) -> Result<bool, Str
 /// Gets the default model name of the default video instance.
 #[tauri::command]
 pub async fn cmd_get_default_video_model() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_video_instance_id;
     if let Some(instance) = config.video_instances.get(default_id) {
         Ok(instance.default_model.clone())
@@ -1079,7 +1079,7 @@ pub async fn cmd_get_default_video_model() -> Result<String, String> {
 /// Adds a new model to the default audio instance.
 #[tauri::command]
 pub async fn cmd_add_audio_model(model: ModelConfig) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_audio_instance_id.clone();
     if let Some(instance) = config.audio_instances.get_mut(&default_id) {
         instance.models.push(model);
@@ -1092,7 +1092,7 @@ pub async fn cmd_add_audio_model(model: ModelConfig) -> Result<bool, String> {
 /// Removes a model from the default audio instance.
 #[tauri::command]
 pub async fn cmd_remove_audio_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_audio_instance_id.clone();
     if let Some(instance) = config.audio_instances.get_mut(&default_id) {
         instance.models.retain(|m| m.name != model_name);
@@ -1107,7 +1107,7 @@ pub async fn cmd_remove_audio_model(model_name: String) -> Result<bool, String> 
 /// Mirrors `cmd_set_default_llm_model`.
 #[tauri::command]
 pub async fn cmd_set_default_audio_model(model_name: String) -> Result<bool, String> {
-    let mut config = HIPPOX_APP_CONFIG.write().await;
+    let mut config = APP_CONFIG.write().await;
     let default_id = config.default_audio_instance_id.clone();
     if let Some(instance) = config.audio_instances.get_mut(&default_id) {
         for model in &mut instance.models {
@@ -1124,7 +1124,7 @@ pub async fn cmd_set_default_audio_model(model_name: String) -> Result<bool, Str
 /// Gets the default model name of the default audio instance.
 #[tauri::command]
 pub async fn cmd_get_default_audio_model() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_audio_instance_id;
     if let Some(instance) = config.audio_instances.get(default_id) {
         Ok(instance.default_model.clone())
@@ -1273,7 +1273,7 @@ pub async fn cmd_cancel_audio_task(
 }
 /// Returns the default model id of the default chat (LLM) instance.
 pub async fn get_default_chat_model_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_llm_instance_id;
     if default_id.is_empty() {
         return Err("No default LLM instance configured".to_string());
@@ -1286,7 +1286,7 @@ pub async fn get_default_chat_model_id() -> Result<String, String> {
 }
 /// Returns the default model id of the default image instance.
 pub async fn get_default_image_model_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_image_instance_id;
     if default_id.is_empty() {
         return Err("No default image instance configured".to_string());
@@ -1304,7 +1304,7 @@ pub async fn get_default_image_model_id() -> Result<String, String> {
 }
 /// Returns the default model id of the default video instance.
 pub async fn get_default_video_model_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_video_instance_id;
     if default_id.is_empty() {
         return Err("No default video instance configured".to_string());
@@ -1322,7 +1322,7 @@ pub async fn get_default_video_model_id() -> Result<String, String> {
 }
 /// Returns the default model id of the default audio instance.
 pub async fn get_default_audio_model_id() -> Result<String, String> {
-    let config = HIPPOX_APP_CONFIG.read().await;
+    let config = APP_CONFIG.read().await;
     let default_id = &config.default_audio_instance_id;
     if default_id.is_empty() {
         return Err("No default audio instance configured".to_string());

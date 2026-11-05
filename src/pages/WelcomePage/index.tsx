@@ -89,10 +89,34 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   /** Whether the mouse is currently hovering over the domain cards wrapper (pauses auto-play) */
   const [isDomainHovered, setIsDomainHovered] = useState(false);
   /**
-   * Domain cards configuration for the welcome page
-   * Each card represents a subsystem that users can navigate to.
-   * The `enabled` flag is derived from SubSytemSwitch so that cards can be toggled on/off globally.
+   * Theme-aware art text colors.
    */
+  const getThemeArtColors = (): { textColor: string; lightColor: string } => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return { textColor: "#818cf8", lightColor: "#ffffff" };
+    }
+    const styles = getComputedStyle(document.documentElement);
+    const accent = styles.getPropertyValue("--accent-color").trim() || "#818cf8";
+    const isLight = document.documentElement.getAttribute("data-theme") === "light";
+    // In light mode, preserve the original flowing light highlight color.
+    const light = isLight ? "#ffffff" : styles.getPropertyValue("--text-primary").trim() || "#ffffff";
+    return { textColor: accent, lightColor: light };
+  };
+  const [artColors, setArtColors] = useState<{ textColor: string; lightColor: string }>(getThemeArtColors);
+  /**
+   * Keep art text colors in sync with theme changes.
+   */
+  useEffect(() => {
+    const refreshArtColors = () => setArtColors(getThemeArtColors());
+    refreshArtColors();
+    const observer = new MutationObserver(refreshArtColors);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+    window.addEventListener("theme-changed", refreshArtColors as EventListener);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("theme-changed", refreshArtColors as EventListener);
+    };
+  }, []);
   const allDomains: {
     id: "general" | "code" | "map" | "chart" | "video" | "audio" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
     label: string;
@@ -627,8 +651,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
         <div className="welcome-logo">
           <img src={banner} alt="HippoxOS Banner" />
         </div>
-        {/* Title Section */}
-        <ArtText text={"HippoxOS"} fontSize={52} fontWeight="300" letterSpacing={4} textColor="#818cf8" lightColor="#ffffff" animationDuration={3} glowSize={2} />
+        {/* Title Section - colors follow the active theme; light mode keeps original white highlight */}
+        <ArtText text={"HippoxOS"} fontSize={52} fontWeight="300" letterSpacing={4} textColor={artColors.textColor} lightColor={artColors.lightColor} animationDuration={3} glowSize={2} />
         <p className="welcome-subtitle">{t("welcome.subtitle") || "A native LLM operating system"}</p>
         {/* Input Form */}
         <form className="welcome-form" onSubmit={handleSubmit}>
@@ -741,12 +765,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
             </div>
           </div>
         </form>
-        {/*
-          Domain Cards - Each card dispatches SESSION_SELECTED event for sidebar highlight.
-          When more than 6 cards are enabled, cards are paginated into pages of 6 (2 rows x 3 columns)
-          and floating circular prev/next buttons appear on the left/right sides for page navigation.
-          Auto page turning: every 2 seconds, looping back to the first page, paused on hover.
-        */}
         <div className="domain-cards-wrapper" onMouseEnter={() => setIsDomainHovered(true)} onMouseLeave={() => setIsDomainHovered(false)}>
           {/* Floating previous page button - circular, positioned on the left side, vertically centered */}
           {isDomainPaginationEnabled && (
@@ -761,8 +779,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
                 key={domain.id}
                 className="domain-card"
                 onClick={() => {
-                  // Dispatch SESSION_SELECTED event to update sidebar highlight
-                  // using the CANONICAL subsystem id carried by the card.
                   window.dispatchEvent(
                     new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
                       detail: {

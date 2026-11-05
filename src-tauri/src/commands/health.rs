@@ -2,7 +2,7 @@ use crate::commands::get_default_chat_model_id;
 use crate::hippox_core::get_default_hippox_with_chat_model;
 use crate::state::AppState;
 use crate::{
-    commands::config::{get_hippox_instance, HIPPOX_APP_CONFIG},
+    commands::config::{get_hippox_instance, APP_CONFIG},
     hippox_core::LlmInstance,
 };
 use hippox::{AudioModelProvider, Hippox, ImageModelProvider, VideoModelProvider};
@@ -28,7 +28,7 @@ const HEALTH_CHECK_TIMEOUT_SECS: u64 = 10;
 #[tauri::command]
 pub async fn cmd_check_all_llm_health(state: State<'_, AppState>) -> Result<Vec<HealthCheckResult>, String> {
     let instances = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.llm_instances.clone()
     };
     if instances.is_empty() {
@@ -204,7 +204,7 @@ fn heartbeat_to_result(instance_id: String, instance_name: String, latency_ms: u
 #[tauri::command]
 pub async fn cmd_check_all_image_health() -> Result<Vec<HealthCheckResult>, String> {
     let instances = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.image_instances.clone()
     };
     if instances.is_empty() {
@@ -265,7 +265,7 @@ pub async fn cmd_check_all_image_health() -> Result<Vec<HealthCheckResult>, Stri
 #[tauri::command]
 pub async fn cmd_check_all_video_health() -> Result<Vec<HealthCheckResult>, String> {
     let instances = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.video_instances.clone()
     };
     if instances.is_empty() {
@@ -326,7 +326,7 @@ pub async fn cmd_check_all_video_health() -> Result<Vec<HealthCheckResult>, Stri
 #[tauri::command]
 pub async fn cmd_check_all_audio_health() -> Result<Vec<HealthCheckResult>, String> {
     let instances = {
-        let config = HIPPOX_APP_CONFIG.read().await;
+        let config = APP_CONFIG.read().await;
         config.audio_instances.clone()
     };
     if instances.is_empty() {
