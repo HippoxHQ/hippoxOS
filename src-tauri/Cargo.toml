@@ -89,6 +89,7 @@ axum = { version = "0.8.9", features = ["multipart"] }
 local-ip-address = "0.6.13"
 flate2 = "1.1.10"
 [target.'cfg(target_os = "windows")'.dependencies]
+winreg = "0.55"
 windows-capture = "2.0.1"
 windows = { version = "0.62.2", features = [
     "Win32_System_Performance",

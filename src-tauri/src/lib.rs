@@ -4,6 +4,7 @@ mod cmd_registry;
 mod commands;
 mod commons;
 mod context;
+mod context_menu;
 mod events;
 mod hippox_core;
 mod scheduled_task;
@@ -39,8 +40,15 @@ use tauri_plugin_dialog;
 use tauri_plugin_fs;
 use tokio::time::sleep;
 static STARTUP_UPDATE_CHECK_RUN: AtomicBool = AtomicBool::new(false);
+// File path captured from argv at startup; consumed by the frontend once ready.
+static PENDING_FILE_OPEN: once_cell::sync::Lazy<std::sync::Mutex<Option<String>>> = once_cell::sync::Lazy::new(|| std::sync::Mutex::new(None));
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Capture file argument before any window is created.
+    if let Some(path) = context_menu::extract_file_arg_from_argv() {
+        log::info!("run - file argument detected: {}", path);
+        *PENDING_FILE_OPEN.lock().unwrap() = Some(path);
+    }
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _guard = rt.enter();
     let app_state = AppState::new();
@@ -140,6 +148,12 @@ pub fn run() {
             }
             TrayManager::setup(app)?;
             crate::subsystem::screen_record::service::init_mouse_tracker(app.handle().clone());
+            // ========== Register context menu (Windows / Linux; macOS no-op) ==========
+            log::info!("[lib] calling register_context_menu");
+            match context_menu::register_context_menu() {
+                Ok(()) => log::info!("[lib] register_context_menu OK"),
+                Err(e) => log::info!("[lib] register_context_menu FAILED: {}", e),
+            }
             // ========== Startup update check (runs once per process) ==========
             let app_handle_for_update = app.handle().clone();
             tauri::async_runtime::spawn(async move {

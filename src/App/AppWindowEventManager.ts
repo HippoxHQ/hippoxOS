@@ -189,15 +189,20 @@ export function getSubsystemEventInfo(subsystem: string): { event: string; panel
 export interface OpenSubsystemPayload {
     subsystem: string;
     sessionId?: string | null;
+    filePath?: string | null;
 }
 /**
  * Dispatch the OPEN_SUBSYSTEM event.
  */
-export function dispatchOpenSubsystem(subsystem: string, sessionId?: string | null): void {
-    console.log("[AppWindowEventManager] dispatchOpenSubsystem", { subsystem, sessionId });
+export function dispatchOpenSubsystem(
+    subsystem: string,
+    sessionId?: string | null,
+    filePath?: string | null,
+): void {
+    console.log("[AppWindowEventManager] dispatchOpenSubsystem", { subsystem, sessionId, filePath });
     window.dispatchEvent(
         new CustomEvent<OpenSubsystemPayload>(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, {
-            detail: { subsystem, sessionId: sessionId ?? null },
+            detail: { subsystem, sessionId: sessionId ?? null, filePath: filePath ?? null },
         }),
     );
 }

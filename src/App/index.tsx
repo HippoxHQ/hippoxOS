@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { taskManager } from "../core/TaskManager";
 import { useFunctionPanelController } from "../components/FunctionPanel/hooks/useFunctionPanelController";
 import { sessionCommands } from "../command/session/general";
@@ -20,10 +20,28 @@ import { useSystemEvents, useDirectoryEvents } from "./hooks/useSystemEvents";
 import { useTaskEvents } from "./hooks/useTaskEvents";
 import { useTheme } from "./hooks/useTheme";
 import { useMenuPanel, ContentPanelView } from "./hooks/useMenuPanel";
-import { APP_WINDOW_EVENTS, getSubsystemEventInfo } from "./AppWindowEventManager";
+import { APP_WINDOW_EVENTS, dispatchOpenSubsystem, getSubsystemEventInfo } from "./AppWindowEventManager";
 import "../core/TaskPool";
 import { videoEditorStateManager } from "../subsystem/VideoEditor/global";
 import { clearVideoEditorAllMemory } from "../subsystem/VideoEditor/MenoryManager";
+import { listen } from "@tauri-apps/api/event";
+// Video file extensions supported by the shell context menu.
+const VIDEO_EXTS = ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv"];
+// Audio file extensions supported by the shell context menu.
+const AUDIO_EXTS = ["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma"];
+// Image file extensions: opened in the video editor (as image material).
+const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "bmp", "gif", "svg", "tiff", "ico"];
+/**
+ * Resolve a file path to the target subsystem id.
+ */
+function resolveSubsystemForFile(filePath: string): string | null {
+  const ext = (filePath.split(".").pop() || "").toLowerCase();
+  if (VIDEO_EXTS.includes(ext)) return "video";
+  if (AUDIO_EXTS.includes(ext)) return "audioEditor";
+  // Images are opened in the video editor as image material.
+  if (IMAGE_EXTS.includes(ext)) return "video";
+  return null;
+}
 function App() {
   const { isConfigLoaded, initialEngineConfig, initialTheme, initialLanguage } = useConfigLoader();
   const { theme, handleToggleTheme } = useTheme(initialTheme);
@@ -77,6 +95,32 @@ function App() {
       unlisten?.();
     };
   }, []);
+  /**
+   * Consume a file path passed via the OS context-menu ("Open with HippoxOS").
+   */
+  useEffect(() => {
+    if (!isConfigLoaded) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const filePath = await invoke<string | null>("cmd_take_pending_file_open");
+        if (cancelled || !filePath) return;
+        console.log("[App] pending file-open path:", filePath);
+        const subsystem = resolveSubsystemForFile(filePath);
+        if (!subsystem) {
+          console.warn("[App] unsupported file type for shell open:", filePath);
+          return;
+        }
+        // Dispatch OPEN_SUBSYSTEM with filePath so the target page opens it.
+        dispatchOpenSubsystem(subsystem, null, filePath);
+      } catch (err) {
+        console.error("[App] cmd_take_pending_file_open failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isConfigLoaded]);
   /**
    * Listen for search new session event using APP_WINDOW_EVENTS
    */

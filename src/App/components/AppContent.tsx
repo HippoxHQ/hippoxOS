@@ -529,6 +529,9 @@ export function AppContent({
   const [isMenuResizeHover, setIsMenuResizeHover] = useState(false);
   // Pending session requested via the OPEN_SUBSYSTEM event.
   const [pendingSession, setPendingSession] = useState<{ subsystem: string; sessionId: string } | null>(null);
+  // Pending file path requested via the OPEN_SUBSYSTEM event (shell context menu).
+  // Only consumed by subsystem pages that accept `initFilePath`.
+  const [pendingFile, setPendingFile] = useState<{ subsystem: string; filePath: string } | null>(null);
   // Refs for page switching and resize
   const prevContentPanelRef = useRef<ContentPanelView | null>(null);
   const isFirstRenderRef = useRef<boolean>(true);
@@ -540,7 +543,7 @@ export function AppContent({
    * Listen for the OPEN_SUBSYSTEM event and switch to the target subsystem panel.
    */
   useEffect(() => {
-    const cleanup = onOpenSubsystem(({ subsystem, sessionId }) => {
+    const cleanup = onOpenSubsystem(({ subsystem, sessionId, filePath }) => {
       if (!subsystem) return;
       // Audio editor keeps its own panel id so the page can select the audio
       // editing mode.
@@ -553,6 +556,10 @@ export function AppContent({
       }
       // Switch to the subsystem's content panel.
       onMenuClick(target.panel);
+      // Remember the file path so the subsystem page can open it on mount.
+      if (filePath) {
+        setPendingFile({ subsystem: normalizedSubsystem, filePath });
+      }
       // Remember the session id so the subsystem page can open it on mount.
       if (sessionId) {
         setPendingSession({ subsystem: normalizedSubsystem, sessionId });
@@ -571,6 +578,17 @@ export function AppContent({
       setPendingSession(null);
     }
   }, [currentContentPanel, pendingSession]);
+  /**
+   * Clear the pending file once the active panel no longer matches the
+   * pending subsystem, so it is not re-applied on later remounts.
+   */
+  useEffect(() => {
+    if (!pendingFile) return;
+    const target = getSubsystemEventInfo(pendingFile.subsystem);
+    if (!target || target.panel !== currentContentPanel) {
+      setPendingFile(null);
+    }
+  }, [currentContentPanel, pendingFile]);
   /**
    * Handle page switching with immediate cleanup
    * Destroys previous page and all its resources immediately
@@ -841,6 +859,16 @@ export function AppContent({
     return null;
   };
   /**
+   * resolve the pending file path for a given subsystem.
+   */
+  const getPendingFilePath = (...subsystems: string[]): string | null => {
+    if (!pendingFile) return null;
+    if (subsystems.includes(pendingFile.subsystem)) {
+      return pendingFile.filePath;
+    }
+    return null;
+  };
+  /**
    * Render the main layout content
    */
   const renderMainLayout = () => {
@@ -962,9 +990,15 @@ export function AppContent({
         />,
       );
     } else if (isVideoEditor) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.VIDEO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} nleEditMode="video" />);
+      contentElement = renderSubsystemPage(
+        PAGE_TYPES.VIDEO_EDITOR,
+        <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} initFilePath={getPendingFilePath("video", "videoediting")} nleEditMode="video" />,
+      );
     } else if (isAudioEditor) {
-      contentElement = renderSubsystemPage(PAGE_TYPES.AUDIO_EDITOR, <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("audioEditor", "audioediting")} nleEditMode="audio" />);
+      contentElement = renderSubsystemPage(
+        PAGE_TYPES.AUDIO_EDITOR,
+        <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("audioEditor", "audioediting")} initFilePath={getPendingFilePath("audioEditor", "audioediting")} nleEditMode="audio" />,
+      );
     } else if (isSandbox3d) {
       contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("sandbox3d")} />);
     } else if (isBlockchain) {

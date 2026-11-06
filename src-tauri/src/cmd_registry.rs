@@ -1077,5 +1077,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         sessions::cmd_update_pinned_apiclient_sessions,
         sessions::cmd_get_pinned_apiclient_sessions,
         subsystem::cmd_get_api_session_dir,
+        // =========== Registry Commands =============
+        commands::cmd_take_pending_file_open
     ]
 }
