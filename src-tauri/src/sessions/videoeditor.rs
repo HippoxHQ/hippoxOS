@@ -49,16 +49,10 @@ fn save_pinned_sessions_to_config(pinned_sessions: &[String]) -> Result<(), Stri
     FileUtils::write_file(&config_path, content.as_bytes()).map_err(|e| format!("Failed to save video session config: {:?}", e))?;
     Ok(())
 }
-/// Background task to process a video file asynchronously
+/// Background task to process a video file asynchronously.
 ///
-/// # Arguments
-/// * `app_handle` - The Tauri app handle for emitting events
-/// * `session_id` - The session identifier
-/// * `source_path` - Path to the video file to process
-///
-/// # Returns
-/// * `Ok(())` on successful processing
-/// * `Err(String)` with error message on failure
+/// Registers the material (which also submits the decode task) but does NOT
+/// add a track block automatically.
 async fn process_video_file_background(app_handle: tauri::AppHandle, session_id: &str, source_path: String) -> Result<(), String> {
     debug!("process_video_file_background - START: session_id={}, source_path={}", session_id, source_path);
     let sid = session_id.to_string();
@@ -76,7 +70,8 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
             None
         };
         debug!("process_video_file_background - download_content_id: {:?}", download_content_id);
-        // Insert the material into the session
+        // Insert the material into the session. register_material also
+        // submits the decode task, so decoding still runs.
         let upload_result = match register_material(&app, sid.clone(), path.clone(), download_content_id.clone(), None, None) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
@@ -94,59 +89,14 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
             let _ = update_download_material_mapping(&task_id, &sid, &material_id);
             debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
         }
-        // Load the material metadata
-        let material_metadata = match load_material_metadata(&sid, &MaterialType::Video, &material_id) {
-            Ok(m) => {
-                debug!("process_video_file_background - Material metadata loaded successfully");
-                m
-            }
-            Err(e) => {
-                error!("process_video_file_background - Failed to load video metadata: {}", e);
-                return Err(e);
-            }
-        };
-        // Update session metadata - add track
-        match load_session_metadata(&sid) {
-            Ok(mut metadata) => {
-                debug!("process_video_file_background - Loading session metadata");
-                let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
-                let _ = tracks.add_material_track(&sid, &material_id, None, None, "video", &material_metadata, None);
-                metadata.tracks = tracks.0;
-                metadata.track_stack = metadata.tracks.keys().cloned().collect();
-                metadata.max_track_time = calculate_max_track_time(&metadata.tracks);
-                metadata.update_timestamp();
-                if let Err(e) = save_session_metadata(&sid, &metadata) {
-                    error!("process_video_file_background - Failed to save session metadata: {}", e);
-                    return Err(e);
-                }
-                debug!("process_video_file_background - Session metadata updated with video track");
-                // Update config.json
-                let session_dir = get_video_editing_system_dialog_history_dir().join(&sid);
-                let config_path = session_dir.join("config.json");
-                if FileUtils::path_exists(&config_path) {
-                    debug!("process_video_file_background - Updating config.json");
-                    if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
-                        if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
-                            if let Ok(tracks_json) = serde_json::to_value(&metadata.tracks) {
-                                config["tracks"] = tracks_json;
-                                config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-                                let _ = save_session_config(&sid, &config);
-                                debug!("process_video_file_background - config.json updated successfully");
-                            }
-                        }
-                    }
-                }
-                info!("process_video_file_background - Video processing completed successfully: material_id={}", material_id);
-                // Emit refresh event to notify frontend
-                let _ = emit_refresh_timeline_and_player(&app, &sid);
-                debug!("process_video_file_background - Refresh event emitted for session: {}", sid);
-                Ok(())
-            }
-            Err(e) => {
-                error!("process_video_file_background - Failed to load session metadata: {}", e);
-                Err(e)
-            }
-        }
+        // Do NOT add a track block: the material is registered and decoding
+        // starts, but it stays in the material panel until the user drops it
+        // onto the timeline manually.
+        info!("process_video_file_background - Video processing completed (no track added): material_id={}", material_id);
+        // Emit refresh event to notify frontend
+        let _ = emit_refresh_timeline_and_player(&app, &sid);
+        debug!("process_video_file_background - Refresh event emitted for session: {}", sid);
+        Ok(())
     })
     .await;
     match result {
@@ -164,16 +114,10 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
         }
     }
 }
-/// Background task to process multiple audio files asynchronously
+/// Background task to process multiple audio files asynchronously.
 ///
-/// # Arguments
-/// * `app_handle` - The Tauri app handle for emitting events
-/// * `session_id` - The session identifier
-/// * `audio_paths` - List of audio file paths to process
-///
-/// # Returns
-/// * `Ok(())` on successful processing
-/// * `Err(String)` with error message on failure
+/// Registers each material (which also submits the decode task) but does NOT
+/// add track blocks automatically.
 async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id: &str, audio_paths: Vec<String>) -> Result<(), String> {
     debug!("process_audio_files_background - START: session_id={}, count={}", session_id, audio_paths.len());
     let sid = session_id.to_string();
@@ -207,32 +151,8 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
                             task_id, material_id
                         );
                     }
-                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Audio, &material_id) {
-                        if let Ok(mut metadata) = load_session_metadata(&sid) {
-                            let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
-                            let _ = tracks.add_material_track(&sid, &material_id, None, None, "audio", &material_metadata, None);
-                            metadata.tracks = tracks.0;
-                            metadata.track_stack = metadata.tracks.keys().cloned().collect();
-                            metadata.max_track_time = calculate_max_track_time(&metadata.tracks);
-                            metadata.update_timestamp();
-                            let _ = save_session_metadata(&sid, &metadata);
-                            // Update config.json
-                            let session_dir = get_video_editing_system_dialog_history_dir().join(&sid);
-                            let config_path = session_dir.join("config.json");
-                            if FileUtils::path_exists(&config_path) {
-                                if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
-                                    if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
-                                        if let Ok(tracks_json) = serde_json::to_value(&metadata.tracks) {
-                                            config["tracks"] = tracks_json;
-                                            config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-                                            let _ = save_session_config(&sid, &config);
-                                        }
-                                    }
-                                }
-                            }
-                            info!("process_audio_files_background - Audio material added: {}", material_id);
-                        }
-                    }
+                    // No track block is added automatically.
+                    info!("process_audio_files_background - Audio material added (no track): {}", material_id);
                 }
                 Err(e) => {
                     error!("process_audio_files_background - Failed to insert audio material: {}", e);
@@ -261,16 +181,10 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
         }
     }
 }
-/// Background task to process multiple image files asynchronously
+/// Background task to process multiple image files asynchronously.
 ///
-/// # Arguments
-/// * `app_handle` - The Tauri app handle for emitting events
-/// * `session_id` - The session identifier
-/// * `image_paths` - List of image file paths to process
-///
-/// # Returns
-/// * `Ok(())` on successful processing
-/// * `Err(String)` with error message on failure
+/// Registers each material (which also submits the decode task) but does NOT
+/// add track blocks automatically.
 async fn process_image_files_background(app_handle: tauri::AppHandle, session_id: &str, image_paths: Vec<String>) -> Result<(), String> {
     debug!("process_image_files_background - START: session_id={}, count={}", session_id, image_paths.len());
     let sid = session_id.to_string();
@@ -304,32 +218,8 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
                             task_id, material_id
                         );
                     }
-                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Image, &material_id) {
-                        if let Ok(mut metadata) = load_session_metadata(&sid) {
-                            let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
-                            let _ = tracks.add_material_track(&sid, &material_id, None, None, "image", &material_metadata, None);
-                            metadata.tracks = tracks.0;
-                            metadata.track_stack = metadata.tracks.keys().cloned().collect();
-                            metadata.max_track_time = calculate_max_track_time(&metadata.tracks);
-                            metadata.update_timestamp();
-                            let _ = save_session_metadata(&sid, &metadata);
-                            // Update config.json
-                            let session_dir = get_video_editing_system_dialog_history_dir().join(&sid);
-                            let config_path = session_dir.join("config.json");
-                            if FileUtils::path_exists(&config_path) {
-                                if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
-                                    if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
-                                        if let Ok(tracks_json) = serde_json::to_value(&metadata.tracks) {
-                                            config["tracks"] = tracks_json;
-                                            config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-                                            let _ = save_session_config(&sid, &config);
-                                        }
-                                    }
-                                }
-                            }
-                            info!("process_image_files_background - Image material added: {}", material_id);
-                        }
-                    }
+                    // No track block is added automatically.
+                    info!("process_image_files_background - Image material added (no track): {}", material_id);
                 }
                 Err(e) => {
                     error!("process_image_files_background - Failed to insert image material: {}", e);
@@ -358,16 +248,10 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
         }
     }
 }
-/// Background task to process multiple text files asynchronously
+/// Background task to process multiple text files asynchronously.
 ///
-/// # Arguments
-/// * `app_handle` - The Tauri app handle for emitting events
-/// * `session_id` - The session identifier
-/// * `text_paths` - List of text file paths to process
-///
-/// # Returns
-/// * `Ok(())` on successful processing
-/// * `Err(String)` with error message on failure
+/// Registers each material (which also submits the decode task) but does NOT
+/// add track blocks automatically.
 async fn process_text_files_background(app_handle: tauri::AppHandle, session_id: &str, text_paths: Vec<String>) -> Result<(), String> {
     debug!("process_text_files_background - START: session_id={}, count={}", session_id, text_paths.len());
     let sid = session_id.to_string();
@@ -398,32 +282,8 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
                         let _ = update_download_material_mapping(&task_id, &sid, &material_id);
                         debug!("process_text_files_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
                     }
-                    if let Ok(material_metadata) = load_material_metadata(&sid, &MaterialType::Text, &material_id) {
-                        if let Ok(mut metadata) = load_session_metadata(&sid) {
-                            let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
-                            let _ = tracks.add_material_track(&sid, &material_id, None, None, "text", &material_metadata, None);
-                            metadata.tracks = tracks.0;
-                            metadata.track_stack = metadata.tracks.keys().cloned().collect();
-                            metadata.max_track_time = calculate_max_track_time(&metadata.tracks);
-                            metadata.update_timestamp();
-                            let _ = save_session_metadata(&sid, &metadata);
-                            // Update config.json
-                            let session_dir = get_video_editing_system_dialog_history_dir().join(&sid);
-                            let config_path = session_dir.join("config.json");
-                            if FileUtils::path_exists(&config_path) {
-                                if let Ok(content) = FileUtils::read_file_to_string(&config_path) {
-                                    if let Ok(mut config) = serde_json::from_str::<serde_json::Value>(&content) {
-                                        if let Ok(tracks_json) = serde_json::to_value(&metadata.tracks) {
-                                            config["tracks"] = tracks_json;
-                                            config["updated_at"] = serde_json::json!(Local::now().to_rfc3339());
-                                            let _ = save_session_config(&sid, &config);
-                                        }
-                                    }
-                                }
-                            }
-                            info!("process_text_files_background - Text material added: {}", material_id);
-                        }
-                    }
+                    // No track block is added automatically.
+                    info!("process_text_files_background - Text material added (no track): {}", material_id);
                 }
                 Err(e) => {
                     error!("process_text_files_background - Failed to insert text material: {}", e);
@@ -452,12 +312,9 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
         }
     }
 }
-// Synchronous processing functions (kept for backward compatibility)
-/// Process a video file synchronously (legacy, kept for backward compatibility)
-///
-/// # Note
-/// This function is synchronous and will block the calling thread.
-/// For new code, use the async version `process_video_file_background`.
+// Synchronous processing functions (kept for backward compatibility).
+// Like the async versions above, they register materials (and trigger
+// decoding) but do NOT add track blocks.
 fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_path: String, metadata: &mut SessionMetadata) {
     debug!("process_video_file - START: session_id={}, source_path={}", session_id, source_path);
     if source_path.is_empty() || !FileUtils::path_exists(Path::new(&source_path)) {
@@ -469,19 +326,15 @@ fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_pat
         Ok(upload_result) => {
             let material_id = upload_result.id;
             debug!("process_video_file - Video material inserted: {}", material_id);
-            if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Video, &material_id) {
-                let mut tracks = TrackTable::from_track_table_map(std::mem::take(&mut metadata.tracks));
-                let _ = tracks.add_material_track(session_id, &material_id, None, None, "video", &material_metadata, None);
-                metadata.tracks = tracks.0;
-                info!("process_video_file - Video track added: {}", material_id);
-            }
+            // No track block is added automatically.
+            info!("process_video_file - Video material added (no track): {}", material_id);
         }
         Err(e) => {
             error!("process_video_file - Failed to insert video material: {}", e);
         }
     }
+    let _ = metadata;
 }
-/// Process audio files synchronously (legacy, kept for backward compatibility)
 fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_paths: Vec<String>, tracks: &mut TrackTableMap) {
     debug!("process_audio_files - START: session_id={}, count={}", session_id, audio_paths.len());
     for audio_path in audio_paths {
@@ -494,20 +347,16 @@ fn process_audio_files(app_handle: tauri::AppHandle, session_id: &str, audio_pat
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_audio_files - Audio material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Audio, &material_id) {
-                    let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
-                    let _ = track_table.add_material_track(session_id, &material_id, None, None, "audio", &material_metadata, None);
-                    *tracks = track_table.0;
-                    info!("process_audio_files - Audio track added: {}", material_id);
-                }
+                // No track block is added automatically.
+                info!("process_audio_files - Audio material added (no track): {}", material_id);
             }
             Err(e) => {
                 error!("process_audio_files - Failed to insert audio material: {}", e);
             }
         }
     }
+    let _ = tracks;
 }
-/// Process image files synchronously (legacy, kept for backward compatibility)
 fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_paths: Vec<String>, tracks: &mut TrackTableMap) {
     debug!("process_image_files - START: session_id={}, count={}", session_id, image_paths.len());
     for image_path in image_paths {
@@ -520,20 +369,16 @@ fn process_image_files(app_handle: tauri::AppHandle, session_id: &str, image_pat
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_image_files - Image material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Image, &material_id) {
-                    let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
-                    let _ = track_table.add_material_track(session_id, &material_id, None, None, "image", &material_metadata, None);
-                    *tracks = track_table.0;
-                    info!("process_image_files - Image track added: {}", material_id);
-                }
+                // No track block is added automatically.
+                info!("process_image_files - Image material added (no track): {}", material_id);
             }
             Err(e) => {
                 error!("process_image_files - Failed to insert image material: {}", e);
             }
         }
     }
+    let _ = tracks;
 }
-/// Process text files synchronously (legacy, kept for backward compatibility)
 fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths: Vec<String>, tracks: &mut TrackTableMap) {
     debug!("process_text_files - START: session_id={}, count={}", session_id, text_paths.len());
     for text_path in text_paths {
@@ -546,18 +391,15 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
             Ok(upload_result) => {
                 let material_id = upload_result.id;
                 debug!("process_text_files - Text material inserted: {}", material_id);
-                if let Ok(material_metadata) = load_material_metadata(session_id, &MaterialType::Text, &material_id) {
-                    let mut track_table = TrackTable::from_track_table_map(std::mem::take(tracks));
-                    let _ = track_table.add_material_track(session_id, &material_id, None, None, "text", &material_metadata, None);
-                    *tracks = track_table.0;
-                    info!("process_text_files - Text track added: {}", material_id);
-                }
+                // No track block is added automatically.
+                info!("process_text_files - Text material added (no track): {}", material_id);
             }
             Err(e) => {
                 error!("process_text_files - Failed to insert text material: {}", e);
             }
         }
     }
+    let _ = tracks;
 }
 /// Create a new video dialog session
 ///

@@ -115,9 +115,8 @@ pub async fn cmd_get_sandbox3d_gif_path(session_id: String, task_id: String) -> 
     }
 }
 /// Register a material for 3D sandbox scene
-/// Saves material data to: HippoX/SandBox3DDialogHistory/{session_id}/materials/{material_id}.json
 #[command]
-pub async fn cmd_register_3d_material(session_id: String, task_id: String) -> Result<FileOperationResult, String> {
+pub async fn cmd_register_3d_material(app_handle: tauri::AppHandle, session_id: String, task_id: String) -> Result<FileOperationResult, String> {
     if session_id.is_empty() {
         return Ok(FileOperationResult { success: false, message: "Session ID cannot be empty".to_string(), path: None });
     }
@@ -131,7 +130,7 @@ pub async fn cmd_register_3d_material(session_id: String, task_id: String) -> Re
         return Ok(FileOperationResult { success: false, message: format!("GIF not found for task: {}", task_id), path: None });
     }
     // Call register_overlay with the GIF path
-    match register_overlay(Some(gif_path.to_string_lossy().to_string()), OverlayType::Image, None, "3d".to_string()) {
+    match register_overlay(app_handle, Some(gif_path.to_string_lossy().to_string()), OverlayType::Image, None, "3d".to_string()) {
         Ok(result) => {
             Ok(FileOperationResult { success: true, message: "Material registered successfully".to_string(), path: Some(result.file_path) })
         }
