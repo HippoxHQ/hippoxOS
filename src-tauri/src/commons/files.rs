@@ -2,6 +2,8 @@ use chrono::Local;
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs};
+
+use crate::commons::FileUtilsProcessPriority;
 #[derive(Debug)]
 pub enum FileError {
     Io(String),
@@ -35,6 +37,10 @@ impl fmt::Display for FileError {
     }
 }
 pub type FileResult<T> = Result<T, FileError>;
+/// Spawn a helper shell command at the lowest CPU priority.
+fn low_priority_shell(program: &str) -> std::process::Command {
+    crate::commons::cmd_program_priority(program, FileUtilsProcessPriority::Low)
+}
 pub struct FileUtils;
 impl FileUtils {
     pub fn ensure_dir(path: &Path) -> FileResult<()> {
@@ -153,19 +159,20 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
+            // All fallback shells run at the lowest CPU priority.
+            let _ = low_priority_shell("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
             if path.exists() {
-                let _ = crate::commons::hidden_cmd("powershell")
+                let _ = low_priority_shell("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Recurse -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
+            let _ = low_priority_shell("rm").args(&["-rf", &path_str]).output();
             if path.exists() {
-                let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
+                let _ = low_priority_shell("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = low_priority_shell("rm").args(&["-rf", &path_str]).output();
             }
         }
         if path.exists() {
@@ -254,19 +261,20 @@ impl FileUtils {
         }
         #[cfg(target_os = "windows")]
         {
-            let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
+            // Fallback shells run at the lowest CPU priority.
+            let _ = low_priority_shell("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
             if path.exists() {
-                let _ = crate::commons::hidden_cmd("powershell")
+                let _ = low_priority_shell("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
         }
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
-            let _ = crate::commons::hidden_cmd("rm").args(&["-f", &path_str]).output();
+            let _ = low_priority_shell("rm").args(&["-f", &path_str]).output();
             if path.exists() {
-                let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
-                let _ = crate::commons::hidden_cmd("rm").args(&["-f", &path_str]).output();
+                let _ = low_priority_shell("chflags").args(&["-R", "nouchg", &path_str]).output();
+                let _ = low_priority_shell("rm").args(&["-f", &path_str]).output();
             }
         }
         if path.exists() {
@@ -293,7 +301,7 @@ impl FileUtils {
         #[cfg(target_os = "windows")]
         {
             // Match any process whose command line contains the path.
-            let _ = crate::commons::hidden_cmd("powershell")
+            let _ = low_priority_shell("powershell")
                 .args(&[
                     "-Command",
                     &format!(
@@ -303,18 +311,18 @@ impl FileUtils {
                 ])
                 .output();
             // Also kill ffmpeg/ffprobe outright - they are the usual offenders.
-            let _ = crate::commons::hidden_cmd("taskkill").args(&["/F", "/IM", "ffmpeg.exe", "/T"]).output();
-            let _ = crate::commons::hidden_cmd("taskkill").args(&["/F", "/IM", "ffprobe.exe", "/T"]).output();
+            let _ = low_priority_shell("taskkill").args(&["/F", "/IM", "ffmpeg.exe", "/T"]).output();
+            let _ = low_priority_shell("taskkill").args(&["/F", "/IM", "ffprobe.exe", "/T"]).output();
             // Give the OS a moment to release the handles.
             std::thread::sleep(std::time::Duration::from_millis(200));
             // Retry deletion via cmd and powershell.
             if path.is_dir() {
-                let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
+                let _ = low_priority_shell("cmd").args(&["/c", "rmdir", "/s", "/q", &path_str]).output();
             } else {
-                let _ = crate::commons::hidden_cmd("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
+                let _ = low_priority_shell("cmd").args(&["/c", "del", "/f", "/q", &path_str]).output();
             }
             if path.exists() {
-                let _ = crate::commons::hidden_cmd("powershell")
+                let _ = low_priority_shell("powershell")
                     .args(&["-Command", &format!("Remove-Item -Path '{}' -Recurse -Force -ErrorAction SilentlyContinue", path_str)])
                     .output();
             }
@@ -322,14 +330,14 @@ impl FileUtils {
         #[cfg(any(target_os = "macos", target_os = "linux"))]
         {
             // fuser -k kills any process using the path (file or mount).
-            let _ = crate::commons::hidden_cmd("fuser").args(&["-k", &path_str]).output();
+            let _ = low_priority_shell("fuser").args(&["-k", &path_str]).output();
             // Fallback: kill ffmpeg/ffprobe by name.
-            let _ = crate::commons::hidden_cmd("pkill").args(&["-9", "-f", "ffmpeg"]).output();
-            let _ = crate::commons::hidden_cmd("pkill").args(&["-9", "-f", "ffprobe"]).output();
+            let _ = low_priority_shell("pkill").args(&["-9", "-f", "ffmpeg"]).output();
+            let _ = low_priority_shell("pkill").args(&["-9", "-f", "ffprobe"]).output();
             std::thread::sleep(std::time::Duration::from_millis(200));
             // Retry: unlock flags and rm -rf.
-            let _ = crate::commons::hidden_cmd("chflags").args(&["-R", "nouchg", &path_str]).output();
-            let _ = crate::commons::hidden_cmd("rm").args(&["-rf", &path_str]).output();
+            let _ = low_priority_shell("chflags").args(&["-R", "nouchg", &path_str]).output();
+            let _ = low_priority_shell("rm").args(&["-rf", &path_str]).output();
         }
         if path.exists() {
             return Err(FileError::RemoveError(format!("Force delete failed: {}", path_str)));

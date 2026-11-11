@@ -15,13 +15,8 @@ interface ArtTextProps {
 }
 const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, fontWeight = "300", letterSpacing = 2, lightColor = "#ffffff", textColor = "#818cf8", animationDuration = 3, fontFamily = "'Great Vibes', 'Sacramento', 'Dancing Script', cursive", glowSize = 0, align = "center" }) => {
   const [viewWidth, setViewWidth] = useState(800);
-  // Platform flag resolved from the Rust backend via the shared osCommands
-  // wrapper. The backend value is determined at compile time and cannot be
-  // spoofed by frontend scripts, unlike `navigator.platform`.
   const [isMacLike, setIsMacLike] = useState(false);
   const [animName] = useState(() => `art-flow-${Math.random().toString(36).substr(2, 9)}`);
-  // Query the backend for the real operating system identifier using the
-  // shared osCommands.getOs() wrapper.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -31,7 +26,6 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
           setIsMacLike(os === "macos");
         }
       } catch (error) {
-        // Fallback to navigator.platform if the backend command is unavailable.
         const fallback = typeof navigator !== "undefined" && /Mac|iPad|iPhone|iPod/.test(navigator.platform || "");
         if (!cancelled) {
           setIsMacLike(fallback);
@@ -55,9 +49,6 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
-  // Inject the CSS keyframes used by the macOS-only implementation.
-  // The animation sweeps the gradient highlight across the text by
-  // moving `background-position`.
   useEffect(() => {
     if (!isMacLike) return;
     const styleId = `art-text-style-${animName}`;
@@ -99,9 +90,9 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
     if (align === "right") return "right";
     return "center";
   };
-  // macOS-only background gradient: a narrow highlight band centered
-  // in the middle of a solid base color.
-  const macBackgroundImage = `linear-gradient(90deg, ${textColor} 0%, ${textColor} 40%, ${lightColor} 47%, ${lightColor} 50%, ${lightColor} 53%, ${textColor} 60%, ${textColor} 100%)`;
+  const stopStops = [0, 42, 46, 49, 50, 51, 54, 58, 100];
+  const stopColors = [textColor, textColor, lightColor, lightColor, lightColor, lightColor, lightColor, textColor, textColor];
+  const macBackgroundImage = `linear-gradient(90deg, ${stopStops.map((p, i) => `${stopColors[i]} ${p}%`).join(", ")})`;
   return (
     <div
       id="art-text-container"
@@ -115,11 +106,6 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
       }}
     >
       {isMacLike ? (
-        /*
-          macOS implementation: plain HTML element with `background-clip: text`.
-          This avoids the WebKit SVG <text> clipping bug that cuts off the
-          right side of italic script glyphs such as the "S" in "HippoxOS".
-        */
         <span
           style={{
             display: "inline-block",
@@ -147,9 +133,6 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
           {text}
         </span>
       ) : (
-        /*
-          Non-macOS implementation: unchanged original SVG-based renderer.
-        */
         <svg
           viewBox={`0 0 ${viewWidth} ${canvasHeight}`}
           style={{
@@ -163,13 +146,9 @@ const ArtText: React.FC<ArtTextProps> = ({ text, className = "", fontSize = 56, 
         >
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={textColor} stopOpacity="1" />
-              <stop offset="40%" stopColor={textColor} stopOpacity="1" />
-              <stop offset="47%" stopColor={lightColor} stopOpacity="1" />
-              <stop offset="50%" stopColor={lightColor} stopOpacity="1" />
-              <stop offset="53%" stopColor={lightColor} stopOpacity="1" />
-              <stop offset="60%" stopColor={textColor} stopOpacity="1" />
-              <stop offset="100%" stopColor={textColor} stopOpacity="1" />
+              {stopStops.map((p, i) => (
+                <stop key={i} offset={`${p}%`} stopColor={stopColors[i]} stopOpacity="1" />
+              ))}
               <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur={`${animationDuration}s`} repeatCount="indefinite" />
             </linearGradient>
           </defs>

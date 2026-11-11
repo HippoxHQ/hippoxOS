@@ -90,17 +90,33 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const [isDomainHovered, setIsDomainHovered] = useState(false);
   /**
    * Theme-aware art text colors.
+   * - light theme: text = --text-primary, white flowing highlight.
+   * - dark / black themes: white text + a soft background-matched shimmer.
+   * - all other themes: follow global theme (text = --text-primary, flow = --accent-color).
    */
   const getThemeArtColors = (): { textColor: string; lightColor: string } => {
     if (typeof window === "undefined" || typeof document === "undefined") {
-      return { textColor: "#818cf8", lightColor: "#ffffff" };
+      return { textColor: "#f5f7fa", lightColor: "#818cf8" };
     }
+    const theme = document.documentElement.getAttribute("data-theme") || "";
     const styles = getComputedStyle(document.documentElement);
+    // Light theme: dark text with a white flowing highlight.
+    if (theme === "light") {
+      const primary = styles.getPropertyValue("--text-primary").trim() || "#0b1220";
+      return { textColor: primary, lightColor: "#ffffff" };
+    }
+    // Dark / pure-black modes: white text + a subtle background-matched shimmer.
+    if (theme === "dark" || theme === "black") {
+      const bg = styles.getPropertyValue("--bg-primary").trim();
+      // Blend the background with a touch of white so the sweep reads as a soft shimmer,
+      // not a hard black block.
+      const light = theme === "black" ? "#1a1a1a" : "#2a2a2a";
+      return { textColor: "#ffffff", lightColor: bg ? light : light };
+    }
+    // Other themes: text follows --text-primary, flowing light follows --accent-color.
+    const primary = styles.getPropertyValue("--text-primary").trim() || "#f5f7fa";
     const accent = styles.getPropertyValue("--accent-color").trim() || "#818cf8";
-    const isLight = document.documentElement.getAttribute("data-theme") === "light";
-    // In light mode, preserve the original flowing light highlight color.
-    const light = isLight ? "#ffffff" : styles.getPropertyValue("--text-primary").trim() || "#ffffff";
-    return { textColor: accent, lightColor: light };
+    return { textColor: primary, lightColor: accent };
   };
   const [artColors, setArtColors] = useState<{ textColor: string; lightColor: string }>(getThemeArtColors);
   /**
@@ -333,8 +349,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
    * This ensures sidebar icon is highlighted and proper event is dispatched.
    */
   const handleNavigate = (pageId: string, subsystem: string) => {
-    // Dispatch session selected event to update sidebar
-    // This will trigger sidebar icon highlight via the Sidebar component's listener
     window.dispatchEvent(
       new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
         detail: {
@@ -566,11 +580,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   };
   /**
    * Handle attachment menu item clicks.
-   *
-   * Text and SKILL files are added to the upload list
-   * and sent with the chat message.
-   *
-   * Image, Video, and Audio files trigger navigation to the video editor.
    */
   const handleAttachment = async (type: string) => {
     setShowAttachmentMenu(false);
@@ -651,7 +660,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
         <div className="welcome-logo">
           <img src={banner} alt="HippoxOS Banner" />
         </div>
-        {/* Title Section - colors follow the active theme; light mode keeps original white highlight */}
+        {/* Title Section - light: dark text + white flow; dark/black: white text + shimmer; other: global theme */}
         <ArtText text={"HippoxOS"} fontSize={52} fontWeight="300" letterSpacing={4} textColor={artColors.textColor} lightColor={artColors.lightColor} animationDuration={3} glowSize={2} />
         <p className="welcome-subtitle">{t("welcome.subtitle") || "A native LLM operating system"}</p>
         {/* Input Form */}

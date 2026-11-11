@@ -789,23 +789,65 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
 /// * `Ok(())` on successful deletion
 /// * `Err(String)` - Error message if deletion fails
 #[tauri::command]
-pub fn cmd_delete_video_dialog_session(session_id: &str) -> Result<(), String> {
+pub async fn cmd_delete_video_dialog_session(app_handle: tauri::AppHandle, session_id: &str) -> Result<(), String> {
     debug!("cmd_delete_video_dialog_session - START: session_id={}", session_id);
+    if let Ok(materials) = crate::subsystem::videoeditor::list_all_materials(session_id) {
+        for m in materials.iter() {
+            let mid = m.id.as_str();
+            crate::subsystem::videoeditor::mark_decode_cancelled(mid);
+            crate::subsystem::videoeditor::mark_material_deleted(mid);
+            let removed = crate::subsystem::videoeditor::DECODE_POOL.cancel_by_material(mid);
+            // Same wait/kill/wait sequence as cmd_cancel_decode_task.
+            let mut stopped = crate::subsystem::videoeditor::wait_for_material_fully_stopped(mid, 5_000);
+            if !stopped {
+                crate::subsystem::kill_ffmpeg_processes();
+                stopped = crate::subsystem::videoeditor::wait_for_material_fully_stopped(mid, 5_000);
+            }
+            crate::subsystem::videoeditor::purge_material_in_memory(mid);
+        }
+        // Give the OS time to release handles before deleting the session dir.
+        crate::subsystem::kill_ffmpeg_processes();
+        std::thread::sleep(std::time::Duration::from_millis(400));
+    }
     let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     if FileUtils::path_exists(&session_dir) {
         debug!("cmd_delete_video_dialog_session - Removing session directory: {:?}", session_dir);
-        FileUtils::remove_dir_all_force(&session_dir).map_err(|e| format!("Failed to delete video session: {:?}", e))?;
+        let mut last_err: Option<String> = None;
+        let mut deleted = false;
+        let backoff_ms = [100u64, 300, 600, 1200, 2000];
+        for (attempt, delay) in backoff_ms.iter().enumerate() {
+            match FileUtils::remove_dir_all_force(&session_dir) {
+                Ok(_) if !session_dir.exists() => {
+                    deleted = true;
+                    break;
+                }
+                Ok(_) => {
+                    let msg = format!("remove returned Ok but dir still exists (attempt {})", attempt + 1);
+                    last_err = Some(msg);
+                }
+                Err(e) => {
+                    let msg = format!("remove attempt {} Err={:?}", attempt + 1, e);
+                    last_err = Some(msg);
+                }
+            }
+            crate::subsystem::kill_ffmpeg_processes();
+            std::thread::sleep(std::time::Duration::from_millis(*delay));
+        }
+        if !deleted {
+            let msg = format!("Failed to delete video session: {:?}", last_err);
+            return Err(msg);
+        }
         info!("cmd_delete_video_dialog_session - Session deleted: {}", session_id);
     } else {
         warn!("cmd_delete_video_dialog_session - Session directory does not exist");
     }
-    // Remove from pinned list if present
     let pinned = get_pinned_sessions_from_config()?;
     if pinned.contains(&session_id.to_string()) {
         debug!("cmd_delete_video_dialog_session - Removing from pinned sessions");
         let _ = cmd_update_pinned_video_sessions(session_id.to_string(), false);
     }
+    let _ = crate::subsystem::videoeditor::emit_refresh_materials(&app_handle, session_id, None);
     debug!("cmd_delete_video_dialog_session - DONE");
     Ok(())
 }

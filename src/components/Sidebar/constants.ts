@@ -8,9 +8,6 @@ topMenuItems.push({ id: "home", icon: "home", label: "menu.home", section: "main
 if (SubSytemSwitch.generalChat) { topMenuItems.push({ id: "generalChat", icon: "chat", label: "menu.general", section: "main" }); }
 if (SubSytemSwitch.videoEditor) { topMenuItems.push({ id: "videoEditor", icon: "videoEditor", label: "menu.videoEditor", section: "main" }); }
 if (SubSytemSwitch.audioEditor) { topMenuItems.push({ id: "audioEditor", icon: "audioEditor", label: "menu.audioEditor", section: "main" }); }
-topMenuItems.push(
-    { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" }
-);
 if (SubSytemSwitch.imageEditor) { topMenuItems.push({ id: "imageEditor", icon: "imageEditor", label: "menu.imageEditor", section: "main" }); }
 if (SubSytemSwitch.pixelEditor) { topMenuItems.push({ id: "pixelEditor", icon: "pixelEditor", label: "menu.pixelEditor", section: "main" }); }
 if (SubSytemSwitch.chartChat) { topMenuItems.push({ id: "chartChat", icon: "chart", label: "menu.chart", section: "main" }); }
@@ -18,11 +15,14 @@ if (SubSytemSwitch.codeEditorChat) { topMenuItems.push({ id: "codeEditorChat", i
 if (SubSytemSwitch.mapChat) { topMenuItems.push({ id: "mapChat", icon: "map", label: "menu.map", section: "main" }); }
 if (SubSytemSwitch.databaseClient) { topMenuItems.push({ id: "databaseClient", icon: "databaseClient", label: "menu.databaseClient", section: "main" }); }
 if (SubSytemSwitch.dockerClient) { topMenuItems.push({ id: "dockerClient", icon: "dockerClient", label: "menu.dockerClient", section: "main" }); }
-if (SubSytemSwitch.apiClient) { topMenuItems.push({ id: "apiClient", icon: "apiClient", label: "menu.apiClient", section: "main" }); }
 if (SubSytemSwitch.sandbox3d) { topMenuItems.push({ id: "sandbox3d", icon: "sandbox3d", label: "menu.sandbox3d", section: "main" }); }
+if (SubSytemSwitch.apiClient) { topMenuItems.push({ id: "apiClient", icon: "apiClient", label: "menu.apiClient", section: "main" }); }
 if (SubSytemSwitch.blockchain) {
     topMenuItems.push({ id: "blockchain", icon: "blockchain", label: "menu.blockchain", section: "main" },);
 }
+topMenuItems.push(
+    { id: "skillsManager", icon: "skillsManager", label: "menu.skillsManager", section: "ai" }
+);
 topMenuItems.push({ id: "skillMarket", icon: "skillMarket", label: "menu.skillMarket", section: "ai" });
 topMenuItems.push({ id: "favorites", icon: "favorites", label: "menu.favorites", section: "main" });
 topMenuItems.push({

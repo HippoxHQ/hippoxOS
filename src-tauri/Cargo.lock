@@ -3164,9 +3164,9 @@ dependencies = [
 
 [[package]]
 name = "ffmpegx"
-version = "0.2.83"
+version = "0.2.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9296e3bb66503824c5a2b338180b64d4bef2190d65442e435d3f15596d4e9921"
+checksum = "35f608a4092ebdc3f064c97aa60ac063252efd874f3c67519785663fd7f43498"
 dependencies = [
  "base64 0.23.1",
  "chrono",
