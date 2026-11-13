@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw, Play, Pause, Music, File, Video, Image, FileText, Info, Box } from "lucide-react";
+import { X, Maximize2, Minimize2, RotateCw, ZoomIn, ZoomOut, RefreshCw, Play, Pause, Music, File, Video, Image, FileText, Box } from "lucide-react";
 import * as monaco from "monaco-editor";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import * as THREE from "three";
@@ -26,15 +26,12 @@ const getTranslation = (language: "zh" | "en", key: string): string => {
   }
   return value || key;
 };
-/**
- * Set of themes considered "dark" so canvas / Monaco editor can pick
- * the correct rendering mode. Extend this list when adding new themes.
- */
 const DARK_THEMES = new Set(["dark", "black", "midnight", "warm", "nord", "dracula", "solarized", "rose", "forest", "pink"]);
-/**
- * Determine whether a given theme name should be treated as dark.
- */
 const isDarkTheme = (themeName: string): boolean => DARK_THEMES.has(themeName);
+const isTauriAssetUrl = (url: string): boolean => {
+  if (!url) return false;
+  return url.startsWith("http://asset.localhost") || url.startsWith("https://asset.localhost") || url.startsWith("asset://");
+};
 const MaterialPreviewWindow: React.FC = () => {
   const [material, setMaterial] = useState<Material | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -42,13 +39,21 @@ const MaterialPreviewWindow: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [assetPath, setAssetPath] = useState<string>("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [remoteDuration, setRemoteDuration] = useState<number | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
-  // Detect macOS so we can hide the custom window control buttons
-  // (macOS uses the native traffic-light buttons when decorations are enabled).
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [dataFetched, setDataFetched] = useState(false);
+  const [durationDisplay, setDurationDisplay] = useState(0);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
+  const videoBlobUrlRef = useRef<string | null>(null);
+  const loadedAssetPathRef = useRef<string | null>(null);
+  const progressFillRef = useRef<HTMLDivElement>(null);
+  const currentTimeTextRef = useRef<HTMLSpanElement>(null);
+  const currentTimeRef = useRef<number>(0);
   const [isMacOS, setIsMacOS] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioVisualizerRef = useRef<{ seek: (time: number) => void }>(null);
@@ -67,9 +72,8 @@ const MaterialPreviewWindow: React.FC = () => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
+  const isVideoMaterial = material?.type === "video";
   const isZh = language === "zh";
-  // Detect the current OS; fall back to navigator.platform if the backend
-  // command is unavailable.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -89,11 +93,69 @@ const MaterialPreviewWindow: React.FC = () => {
       cancelled = true;
     };
   }, []);
-  // Initialize 3D preview
+  // Load local video files into a Blob and play from a blob: URL.
+  useEffect(() => {
+    if (!isVideoMaterial || !assetPath) {
+      return;
+    }
+    if (!isTauriAssetUrl(assetPath)) {
+      if (videoBlobUrlRef.current) {
+        URL.revokeObjectURL(videoBlobUrlRef.current);
+        videoBlobUrlRef.current = null;
+      }
+      loadedAssetPathRef.current = assetPath;
+      setVideoBlobUrl(null);
+      return;
+    }
+    if (loadedAssetPathRef.current === assetPath && videoBlobUrlRef.current) {
+      return;
+    }
+    let cancelled = false;
+    const loadBlob = async () => {
+      try {
+        const response = await fetch(assetPath);
+        if (!response.ok) {
+          throw new Error(`Fetch failed with status ${response.status}`);
+        }
+        const blob = await response.blob();
+        if (cancelled) return;
+        if (videoBlobUrlRef.current) {
+          URL.revokeObjectURL(videoBlobUrlRef.current);
+          videoBlobUrlRef.current = null;
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        videoBlobUrlRef.current = objectUrl;
+        loadedAssetPathRef.current = assetPath;
+        setVideoBlobUrl(objectUrl);
+      } catch (e) {
+        console.error("[VideoPreview] Failed to load video as blob, falling back to asset URL:", e);
+        if (!cancelled) {
+          loadedAssetPathRef.current = assetPath;
+          setVideoBlobUrl(null);
+        }
+      }
+    };
+    loadBlob();
+    return () => {
+      cancelled = true;
+    };
+  }, [isVideoMaterial, assetPath]);
+  useEffect(() => {
+    return () => {
+      if (videoBlobUrlRef.current) {
+        URL.revokeObjectURL(videoBlobUrlRef.current);
+        videoBlobUrlRef.current = null;
+      }
+      loadedAssetPathRef.current = null;
+      if (hideControlsTimerRef.current) {
+        clearTimeout(hideControlsTimerRef.current);
+        hideControlsTimerRef.current = null;
+      }
+    };
+  }, []);
   const initThreePreview = useCallback(() => {
     const container = threeContainerRef.current;
     if (!container || !material?.code) return;
-    // Clean up previous renderer
     if (threeRendererRef.current) {
       threeRendererRef.current.dispose();
       threeRendererRef.current = null;
@@ -111,10 +173,7 @@ const MaterialPreviewWindow: React.FC = () => {
     camera.position.set(5, 4, 6);
     camera.lookAt(0, 0, 0);
     threeCameraRef.current = camera;
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: false,
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -132,7 +191,6 @@ const MaterialPreviewWindow: React.FC = () => {
     controls.maxDistance = 20;
     controls.target.set(0, 0, 0);
     threeControlsRef.current = controls;
-    // Default lights
     const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
     ambientLight.userData.persistent = true;
     scene.add(ambientLight);
@@ -151,7 +209,6 @@ const MaterialPreviewWindow: React.FC = () => {
     rimLight.position.set(0, -3, -8);
     rimLight.userData.persistent = true;
     scene.add(rimLight);
-    // Ground
     const groundGeo = new THREE.PlaneGeometry(12, 12);
     const groundMat = new THREE.MeshPhysicalMaterial({
       color: 0x1a1a3a,
@@ -173,7 +230,6 @@ const MaterialPreviewWindow: React.FC = () => {
     gridHelper.material.opacity = 0.3;
     gridHelper.userData.persistent = true;
     scene.add(gridHelper);
-    // Execute the Three.js code
     try {
       const fn = new Function(
         "THREE",
@@ -193,14 +249,12 @@ const MaterialPreviewWindow: React.FC = () => {
     } catch (error) {
       console.error("[MaterialPreview] Failed to execute 3D code:", error);
     }
-    // Animation loop
     const animate = () => {
       threeAnimationIdRef.current = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
     animate();
-    // Resize observer
     const resizeObserver = new ResizeObserver(() => {
       const rect = container.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
@@ -232,27 +286,33 @@ const MaterialPreviewWindow: React.FC = () => {
       }
     };
   }, [material]);
-  // Initialize/cleanup 3D preview when material changes
   useEffect(() => {
     if (material?.type === "3d" && material.code) {
       const cleanup = initThreePreview();
       return cleanup;
     }
   }, [material, initThreePreview]);
-  // Handle video metadata loaded
   const handleVideoMetadataLoaded = () => {
     if (videoRef.current) {
       const duration = videoRef.current.duration;
       if (duration && !isNaN(duration)) {
         setRemoteDuration(duration);
-        setMaterial((prev) => (prev ? { ...prev, duration } : prev));
+        setDurationDisplay(duration);
+        setMaterial((prev) => {
+          if (!prev || prev.duration === duration) return prev;
+          return { ...prev, duration };
+        });
       }
     }
   };
   const handleAudioDuration = (duration: number) => {
     if (duration && !isNaN(duration)) {
       setAudioDuration(duration);
-      setMaterial((prev) => (prev ? { ...prev, duration } : prev));
+      setDurationDisplay(duration);
+      setMaterial((prev) => {
+        if (!prev || prev.duration === duration) return prev;
+        return { ...prev, duration };
+      });
     }
   };
   useEffect(() => {
@@ -261,7 +321,6 @@ const MaterialPreviewWindow: React.FC = () => {
         const [savedTheme, savedLanguage] = await Promise.all([configCommands.getSettingsTheme(), configCommands.getSettingsLanguage()]);
         setTheme(savedTheme as "dark" | "light");
         setLanguage(savedLanguage as "zh" | "en");
-        // Apply theme attribute so CSS variables resolve for this window
         document.documentElement.setAttribute("data-theme", savedTheme as string);
       } catch (error) {
         console.error("Failed to load config:", error);
@@ -285,16 +344,17 @@ const MaterialPreviewWindow: React.FC = () => {
           setIsLoaded(false);
           setRemoteDuration(null);
           setAudioDuration(null);
-          // If it's a 3D type with code, initialize preview after render
+          setIsBuffering(false);
           if (data.type === "3d" && data.code) {
             setTimeout(() => {
               const cleanup = initThreePreview();
-              // Store cleanup for unmount
             }, 100);
           }
         }
       } catch (error) {
         console.error("Failed to get material preview data:", error);
+      } finally {
+        setDataFetched(true);
       }
       const checkMaximized = async () => {
         try {
@@ -330,7 +390,6 @@ const MaterialPreviewWindow: React.FC = () => {
         editorRef.current.dispose();
         editorRef.current = null;
       }
-      // Use the accurate dark detection so all dark themes get the vs-dark editor.
       const darkMode = isDarkTheme(theme as string);
       const content = material.content_preview || (isZh ? "暂无内容预览" : "No content preview");
       const fileExt = material.name.split(".").pop()?.toLowerCase() || "";
@@ -447,6 +506,34 @@ const MaterialPreviewWindow: React.FC = () => {
       setIsFullscreen(false);
     }
   };
+  // Idle-hide logic for the overlay controls. Whenever the pointer moves or
+  // the play state changes we show the bar; while playing, an inactivity
+  // timer fades it out after 2.5 seconds. Pausing pins it visible.
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideControlsTimerRef.current) {
+      clearTimeout(hideControlsTimerRef.current);
+      hideControlsTimerRef.current = null;
+    }
+    if (isPlaying) {
+      hideControlsTimerRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500);
+    }
+  }, [isPlaying]);
+  useEffect(() => {
+    if (!isPlaying) {
+      // Paused: always keep the bar visible.
+      if (hideControlsTimerRef.current) {
+        clearTimeout(hideControlsTimerRef.current);
+        hideControlsTimerRef.current = null;
+      }
+      setControlsVisible(true);
+      return;
+    }
+    // Started playing: schedule a hide.
+    showControls();
+  }, [isPlaying, showControls]);
   const handlePlayPause = () => {
     if (material?.type === "video" && videoRef.current) {
       if (isPlaying) {
@@ -459,21 +546,42 @@ const MaterialPreviewWindow: React.FC = () => {
       setIsPlaying(!isPlaying);
     }
   };
+  // Update the progress bar and time label directly on the DOM, bypassing
+  // React re-renders entirely. This is what keeps playback smooth on
+  // high-resolution clips: no JSX diff happens while the video is playing.
   const handleTimeUpdate = () => {
-    if (material?.type === "video" && videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+    const v = videoRef.current;
+    if (!v) return;
+    const time = v.currentTime;
+    currentTimeRef.current = time;
+    const dur = getDisplayDuration() || 1;
+    if (progressFillRef.current) {
+      progressFillRef.current.style.width = `${Math.min(100, (time / dur) * 100)}%`;
+    }
+    if (currentTimeTextRef.current) {
+      currentTimeTextRef.current.textContent = formatDuration(time);
     }
   };
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
-    const duration = material?.duration || 0;
+    const duration = getDisplayDuration();
+    if (duration <= 0) return;
     const seekTime = percent * duration;
     if (material?.type === "video" && videoRef.current) {
       videoRef.current.currentTime = seekTime;
+      currentTimeRef.current = seekTime;
+      if (progressFillRef.current) {
+        progressFillRef.current.style.width = `${percent * 100}%`;
+      }
+      if (currentTimeTextRef.current) {
+        currentTimeTextRef.current.textContent = formatDuration(seekTime);
+      }
     } else if (material?.type === "audio" && audioVisualizerRef.current) {
       audioVisualizerRef.current.seek(seekTime);
     }
+    showControls();
   };
   const formatDuration = (seconds: number): string => {
     if (!seconds || seconds === 0 || isNaN(seconds)) return "00:00";
@@ -482,14 +590,17 @@ const MaterialPreviewWindow: React.FC = () => {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
   const getDisplayDuration = (): number => {
-    if (material?.duration && material.duration > 0) {
-      return material.duration;
+    if (durationDisplay > 0) {
+      return durationDisplay;
     }
     if (remoteDuration && remoteDuration > 0) {
       return remoteDuration;
     }
     if (audioDuration && audioDuration > 0) {
       return audioDuration;
+    }
+    if (material?.duration && material.duration > 0) {
+      return material.duration;
     }
     return 0;
   };
@@ -534,7 +645,6 @@ const MaterialPreviewWindow: React.FC = () => {
     setImageScale((prev) => Math.min(Math.max(prev + delta, 0.25), 5));
   };
   const styles = getStyles(isDark, imageScale, isDragging, imageRotation, imagePosition);
-  // Get icon for material type
   const getTypeIcon = () => {
     switch (material?.type) {
       case "video":
@@ -567,10 +677,10 @@ const MaterialPreviewWindow: React.FC = () => {
         return isZh ? "未知" : "Unknown";
     }
   };
-  if (!material) {
+  // Skeleton player shown while the material preview data is being fetched.
+  const renderSkeleton = () => {
     return (
       <div style={styles.container}>
-        {/* Titlebar: data-tauri-drag-region="deep" enables dragging the whole subtree */}
         <div style={styles.topBar} data-tauri-drag-region="deep">
           <div style={styles.topBarLeft}>
             <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
@@ -579,8 +689,99 @@ const MaterialPreviewWindow: React.FC = () => {
             <span style={styles.topBarTitle}>{isZh ? "素材预览" : "Material Preview"}</span>
           </div>
           <div style={styles.topBarRight}>
-            {/* On macOS the native traffic-light buttons are provided by the
-                window decorations, so the custom control group is hidden. */}
+            {!isMacOS && (
+              <>
+                <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
+                  <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 300 }}>─</span>
+                </button>
+                <button style={styles.windowBtn} onClick={handleMaximize} title={isZh ? (isMaximized ? "还原" : "最大化") : isMaximized ? "Restore" : "Maximize"}>
+                  {isMaximized ? (
+                    <span style={{ fontSize: "20px", lineHeight: 1, fontWeight: 400, marginTop: "2px" }}>❐</span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: "30px",
+                        fontWeight: 300,
+                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        marginTop: "-4px",
+                      }}
+                    >
+                      □
+                    </span>
+                  )}
+                </button>
+                <button
+                  style={styles.windowBtn}
+                  onClick={handleClose}
+                  title={isZh ? "关闭" : "Close"}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(220,38,38,0.12)";
+                    e.currentTarget.style.color = "var(--accent-red)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        <div style={styles.content}>
+          <div style={styles.previewContainer}>
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: "4px",
+                backgroundColor: "#000",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  border: "3px solid rgba(255,255,255,0.15)",
+                  borderTopColor: "rgba(255,255,255,0.8)",
+                  animation: "preview-skeleton-spin 0.9s linear infinite",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+        <style>{`
+          @keyframes preview-skeleton-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  };
+  if (!material) {
+    if (!dataFetched) {
+      return renderSkeleton();
+    }
+    return (
+      <div style={styles.container}>
+        <div style={styles.topBar} data-tauri-drag-region="deep">
+          <div style={styles.topBarLeft}>
+            <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
+          </div>
+          <div style={styles.topBarCenter}>
+            <span style={styles.topBarTitle}>{isZh ? "素材预览" : "Material Preview"}</span>
+          </div>
+          <div style={styles.topBarRight}>
             {!isMacOS && (
               <>
                 <button style={styles.windowBtn} onClick={handleMinimize} title={isZh ? "最小化" : "Minimize"}>
@@ -632,33 +833,199 @@ const MaterialPreviewWindow: React.FC = () => {
       </div>
     );
   }
-  // Check if the material is a GIF image
   const isGif = material.type === "image" && material.file_path?.toLowerCase().endsWith(".gif");
+  const hasPlayback = material.type === "video" || material.type === "audio";
+  const displayDuration = getDisplayDuration();
+  // Overlay control bar: floats over the media, fades out while playing and
+  // the pointer is idle. This is the standard layout used by VLC / IINA /
+  // QuickTime / Windows Media Player.
+  const renderOverlayControls = () => {
+    if (!hasPlayback) return null;
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          padding: "32px 16px 12px",
+          background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.32) 55%, rgba(0,0,0,0) 100%)",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          opacity: controlsVisible ? 1 : 0,
+          transform: controlsVisible ? "translateY(0)" : "translateY(8px)",
+          transition: "opacity 0.22s ease, transform 0.22s ease",
+          pointerEvents: controlsVisible ? "auto" : "none",
+          zIndex: 20,
+          color: "#fff",
+        }}
+        onMouseEnter={showControls}
+        onMouseMove={showControls}
+      >
+        <button
+          onClick={handlePlayPause}
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            border: "none",
+            background: "rgba(255,255,255,0.16)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "background 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.28)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.16)";
+          }}
+        >
+          {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+        </button>
+        <span
+          ref={currentTimeTextRef}
+          style={{
+            fontSize: "12px",
+            fontFamily: "monospace",
+            color: "rgba(255,255,255,0.85)",
+            minWidth: "42px",
+            textAlign: "center",
+            flexShrink: 0,
+          }}
+        >
+          00:00
+        </span>
+        <div
+          onClick={handleProgressClick}
+          style={{
+            flex: 1,
+            height: "18px",
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              height: "4px",
+              background: "rgba(255,255,255,0.22)",
+              borderRadius: "2px",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              ref={progressFillRef}
+              style={{
+                height: "100%",
+                width: "0%",
+                background: "#fff",
+                borderRadius: "2px",
+                transition: "width 0.08s linear",
+              }}
+            />
+          </div>
+        </div>
+        <span
+          style={{
+            fontSize: "12px",
+            fontFamily: "monospace",
+            color: "rgba(255,255,255,0.6)",
+            minWidth: "42px",
+            textAlign: "center",
+            flexShrink: 0,
+          }}
+        >
+          {formatDuration(displayDuration)}
+        </span>
+      </div>
+    );
+  };
   const renderContent = () => {
     switch (material.type) {
-      case "video":
+      case "video": {
+        const videoSrc = videoBlobUrl || assetPath;
         return (
-          <div style={styles.previewContainer}>
+          <div
+            style={{ ...styles.previewContainer, position: "relative" }}
+            onMouseMove={showControls}
+            onMouseLeave={() => {
+              // If the pointer leaves the stage while playing, hide the bar.
+              if (isPlaying) {
+                setControlsVisible(false);
+              }
+            }}
+          >
             <video
+              key={videoBlobUrl ? "blob" : "asset"}
               ref={videoRef}
-              src={assetPath}
-              style={styles.video}
+              src={videoSrc}
+              style={{ ...styles.video, transform: "translateZ(0)", willChange: "transform" }}
               onTimeUpdate={handleTimeUpdate}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => {
                 setIsPlaying(false);
-                setCurrentTime(0);
+                currentTimeRef.current = 0;
+                if (progressFillRef.current) {
+                  progressFillRef.current.style.width = "0%";
+                }
+                if (currentTimeTextRef.current) {
+                  currentTimeTextRef.current.textContent = "00:00";
+                }
               }}
               onLoadedMetadata={handleVideoMetadataLoaded}
+              onCanPlay={() => setIsBuffering(false)}
+              onWaiting={() => setIsBuffering(true)}
+              onPlaying={() => setIsBuffering(false)}
+              onStalled={() => setIsBuffering(true)}
+              onError={(e) => {
+                const v = e.currentTarget;
+                console.error("[VideoPreview] onError:", v.error?.code, v.error?.message, "src:", v.src);
+              }}
               controls={false}
-              crossOrigin="anonymous"
+              preload="auto"
+              playsInline
+              disablePictureInPicture
+              disableRemotePlayback
             />
+            {renderOverlayControls()}
+            {isBuffering && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: "3px solid rgba(255,255,255,0.15)",
+                    borderTopColor: "rgba(255,255,255,0.85)",
+                    animation: "preview-skeleton-spin 0.9s linear infinite",
+                  }}
+                />
+              </div>
+            )}
           </div>
         );
+      }
       case "audio":
         return (
-          <div style={styles.previewContainer}>
+          <div style={{ ...styles.previewContainer, position: "relative" }} onMouseMove={showControls}>
             <div style={styles.waveformContainer}>
               {assetPath ? (
                 <AudioVisualizer
@@ -670,7 +1037,14 @@ const MaterialPreviewWindow: React.FC = () => {
                     setIsPlaying(playing);
                   }}
                   onTimeUpdate={(time: number) => {
-                    setCurrentTime(time);
+                    currentTimeRef.current = time;
+                    if (currentTimeTextRef.current) {
+                      currentTimeTextRef.current.textContent = formatDuration(time);
+                    }
+                    const dur = getDisplayDuration() || 1;
+                    if (progressFillRef.current) {
+                      progressFillRef.current.style.width = `${Math.min(100, (time / dur) * 100)}%`;
+                    }
                   }}
                   onLoaded={() => {
                     setIsLoaded(true);
@@ -684,9 +1058,9 @@ const MaterialPreviewWindow: React.FC = () => {
                 <Music size={48} style={{ opacity: 0.3 }} />
               )}
             </div>
+            {renderOverlayControls()}
           </div>
         );
-      // Handle both regular images and GIFs
       case "image": {
         const imageSrc = assetPath || material.thumbnail || "";
         return (
@@ -765,7 +1139,6 @@ const MaterialPreviewWindow: React.FC = () => {
                 </button>
               </div>
             )}
-            {/* Show GIF badge if this is a GIF image */}
             {isGif && (
               <div
                 style={{
@@ -811,12 +1184,14 @@ const MaterialPreviewWindow: React.FC = () => {
         );
     }
   };
-  const hasPlayback = material.type === "video" || material.type === "audio";
-  const displayDuration = getDisplayDuration();
   return (
     <div style={styles.container}>
-      {/* Title Bar */}
-      {/* Titlebar: data-tauri-drag-region="deep" enables dragging the whole subtree (macOS + Win + Linux) */}
+      <style>{`
+        @keyframes preview-skeleton-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <div style={styles.topBar} data-tauri-drag-region="deep">
         <div style={styles.topBarLeft}>
           <img src={logo} alt="logo" style={{ width: 22, height: 22, borderRadius: 5 }} />
@@ -827,8 +1202,6 @@ const MaterialPreviewWindow: React.FC = () => {
           </span>
         </div>
         <div style={styles.topBarRight}>
-          {/* On macOS the native traffic-light buttons are provided by the
-              window decorations, so the custom control group is hidden. */}
           {!isMacOS && (
             <>
               <button
@@ -884,69 +1257,7 @@ const MaterialPreviewWindow: React.FC = () => {
           )}
         </div>
       </div>
-      {/* Main Content */}
       <div style={styles.content}>{renderContent()}</div>
-      {/* Playback Controls - for video and audio */}
-      {hasPlayback && (
-        <div style={styles.controls}>
-          <button
-            style={styles.playBtn}
-            onClick={handlePlayPause}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--hover-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-          <span style={styles.timeDisplay}>{formatDuration(currentTime)}</span>
-          <div style={styles.progressBar} onClick={handleProgressClick}>
-            <div
-              style={{
-                ...styles.progressFill,
-                width: `${(currentTime / (displayDuration || 1)) * 100}%`,
-              }}
-            />
-          </div>
-          <span style={styles.timeDisplay}>{formatDuration(displayDuration)}</span>
-        </div>
-      )}
-      {/* Material Info Footer */}
-      <div style={styles.info}>
-        <span style={styles.infoLabel}>{isZh ? "类型" : "Type"}</span>
-        <span style={styles.infoValue}>
-          {getTypeIcon()} {getTypeLabel()}
-          {isGif && " GIF"}
-        </span>
-        {displayDuration > 0 && (
-          <>
-            <span style={styles.infoLabel}>{isZh ? "时长" : "Duration"}</span>
-            <span style={styles.infoValue}>{formatDuration(displayDuration)}</span>
-          </>
-        )}
-        {material.width && material.height && (
-          <>
-            <span style={styles.infoLabel}>{isZh ? "分辨率" : "Resolution"}</span>
-            <span style={styles.infoValue}>
-              {material.width}×{material.height}
-            </span>
-          </>
-        )}
-        {material.file_size && (
-          <>
-            <span style={styles.infoLabel}>{isZh ? "文件大小" : "File Size"}</span>
-            <span style={styles.infoValue}>{(material.file_size / 1024 / 1024).toFixed(2)} MB</span>
-          </>
-        )}
-        {material.line_count && (
-          <>
-            <span style={styles.infoLabel}>{isZh ? "行数" : "Lines"}</span>
-            <span style={styles.infoValue}>{material.line_count}</span>
-          </>
-        )}
-      </div>
     </div>
   );
 };

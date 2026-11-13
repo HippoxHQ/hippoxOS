@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { AudioVisualizerProps, AudioVisualizerRef } from "./types";
 const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProps>(({ audioUrl, isDark, isPlaying, onPlayStateChange, onTimeUpdate, onLoaded, onDuration }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,32 +12,22 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
   const isInitializedRef = useRef(false);
   const isPlayingRef = useRef(false);
   const isLoadingRef = useRef(true);
-  const particlesRef = useRef<
-    Array<{
-      x: number;
-      y: number;
-      size: number;
-      angle: number;
-      speed: number;
-      offset: number;
-      baseX: number;
-      baseY: number;
-      hue: number;
-      saturation: number;
-      lightness: number;
-    }>
-  >([]);
-  const starDustRef = useRef<
-    Array<{
-      x: number;
-      y: number;
-      size: number;
-      speedX: number;
-      speedY: number;
-      opacity: number;
-      phase: number;
-    }>
-  >([]);
+  // Star field: each star has a 3D-ish position (x, y, z) where z is depth.
+  type Star = {
+    x: number;
+    y: number;
+    z: number;
+    pz: number; // previous z for motion-blur trail
+    hue: number;
+    size: number;
+    twinkle: number;
+  };
+  const starsRef = useRef<Star[]>([]);
+  // Smoothed orb level for the pulsing core.
+  const coreLevelRef = useRef(0);
+  // Slowly rotating background nebula offset.
+  const nebulaPhaseRef = useRef(0);
+  const startTimeRef = useRef(performance.now());
   React.useImperativeHandle(ref, () => ({
     seek: (time: number) => {
       if (audioRef.current) {
@@ -45,199 +35,208 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       }
     },
   }));
-  const createParticles = (width: number, height: number) => {
-    const newParticles = [];
-    for (let i = 0; i < 200; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 20 + Math.random() * Math.min(width, height) * 0.35;
-      const baseX = width / 2 + Math.cos(angle) * radius;
-      const baseY = height / 2 + Math.sin(angle) * radius;
-      newParticles.push({
-        x: baseX,
-        y: baseY,
-        baseX: baseX,
-        baseY: baseY,
-        size: 2 + Math.random() * 3,
-        angle: Math.random() * Math.PI * 2,
-        speed: 0.002 + Math.random() * 0.006,
-        offset: Math.random() * 1000,
-        hue: 180 + Math.random() * 40,
-        saturation: isDark ? 60 + Math.random() * 20 : 70 + Math.random() * 20,
-        lightness: isDark ? 50 + Math.random() * 20 : 40 + Math.random() * 20,
-      });
-    }
-    return newParticles;
+  const createStar = (width: number, height: number, fresh = false): Star => {
+    const maxDim = Math.max(width, height);
+    const depth = fresh ? maxDim * (0.9 + Math.random() * 0.1) : maxDim;
+    const spread = maxDim * 0.9;
+    return {
+      x: (Math.random() - 0.5) * spread,
+      y: (Math.random() - 0.5) * spread,
+      z: depth,
+      pz: depth,
+      hue: 200 + Math.random() * 120, // blue -> violet
+      size: 0.6 + Math.random() * 1.6,
+      twinkle: Math.random() * Math.PI * 2,
+    };
   };
-  const createStarDust = (width: number, height: number) => {
-    const stars = [];
-    for (let i = 0; i < 150; i++) {
-      stars.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        size: 0.5 + Math.random() * 1.5,
-        speedX: (Math.random() - 0.5) * 0.3,
-        speedY: (Math.random() - 0.5) * 0.3,
-        opacity: 0.1 + Math.random() * 0.3,
-        phase: Math.random() * Math.PI * 2,
-      });
+  const initStars = (width: number, height: number) => {
+    const count = 320;
+    const arr: Star[] = [];
+    for (let i = 0; i < count; i++) {
+      const s = createStar(width, height);
+      s.z = 1 + Math.random() * Math.max(width, height);
+      s.pz = s.z;
+      arr.push(s);
     }
-    return stars;
+    starsRef.current = arr;
   };
-  const drawParticles = (ctx: CanvasRenderingContext2D, width: number, height: number, spectrum: Uint8Array, bass: number, mid: number, treble: number) => {
-    const overall = (bass + mid + treble) / 3;
-    const particles = particlesRef.current;
-    const stars = starDustRef.current;
+  const drawFrame = (ctx: CanvasRenderingContext2D, width: number, height: number, spectrum: Uint8Array, bass: number, mid: number, treble: number, active: boolean) => {
     const cx = width / 2;
     const cy = height / 2;
-    // Draw star dust
-    stars.forEach((star) => {
-      star.x += star.speedX;
-      star.y += star.speedY;
-      if (star.x < 0) star.x = width;
-      if (star.x > width) star.x = 0;
-      if (star.y < 0) star.y = height;
-      if (star.y > height) star.y = 0;
-      const flicker = 0.5 + 0.5 * Math.sin(Date.now() / 2000 + star.phase);
-      const opacity = star.opacity * (0.5 + 0.5 * flicker);
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-      ctx.fillStyle = isDark ? `rgba(180, 220, 255, ${opacity * 0.5})` : `rgba(100, 150, 200, ${opacity * 0.3})`;
-      ctx.fill();
-      if (star.size > 1) {
-        const glow = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 4);
-        const glowColor = isDark ? `rgba(150, 200, 255, ${opacity * 0.1})` : `rgba(100, 150, 200, ${opacity * 0.05})`;
-        glow.addColorStop(0, glowColor);
-        glow.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size * 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-    if (particles.length === 0) return;
-    // Center glow
-    const glowSize = 80 + overall * 120;
-    const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowSize);
-    const glowColor = isDark ? `rgba(78, 201, 176, ${0.05 + overall * 0.08})` : `rgba(30, 150, 130, ${0.05 + overall * 0.08})`;
-    glowGrad.addColorStop(0, glowColor);
-    glowGrad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glowGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, glowSize, 0, Math.PI * 2);
-    ctx.fill();
-    // Draw particle connections
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < 100) {
-          const alpha = (1 - distance / 100) * (0.15 + overall * 0.5);
-          const hue = isDark ? 180 + overall * 30 : 190 + overall * 30;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
-          ctx.lineWidth = 0.3 + overall * 0.8;
-          ctx.stroke();
-          if (overall > 0.3) {
-            ctx.strokeStyle = `hsla(${hue}, 100%, 80%, ${alpha * 0.3})`;
-            ctx.lineWidth = 0.1 + overall * 0.4;
-            ctx.stroke();
-          }
-        }
-      }
+    const maxDim = Math.max(width, height);
+    const now = performance.now();
+    const t = (now - startTimeRef.current) / 1000;
+    // --- Smooth core level (attack/release) ---
+    const targetLevel = active ? Math.max(0.05, Math.min(1, bass * 0.8 + mid * 0.2)) : 0.12 + 0.04 * Math.sin(t * 0.8);
+    const attack = active ? 0.25 : 0.04;
+    const release = active ? 0.1 : 0.02;
+    const cur = coreLevelRef.current;
+    coreLevelRef.current = cur + (targetLevel - cur) * (targetLevel > cur ? attack : release);
+    const level = coreLevelRef.current;
+    // --- Background: black + slow nebula glow ---
+    ctx.clearRect(0, 0, width, height);
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxDim * 0.75);
+    if (isDark) {
+      bg.addColorStop(0, "rgba(10, 12, 20, 1)");
+      bg.addColorStop(0.55, "rgba(6, 8, 14, 1)");
+      bg.addColorStop(1, "rgba(2, 3, 6, 1)");
+    } else {
+      bg.addColorStop(0, "rgba(245, 247, 252, 1)");
+      bg.addColorStop(0.55, "rgba(236, 240, 248, 1)");
+      bg.addColorStop(1, "rgba(224, 229, 240, 1)");
     }
-    // Draw particles
-    particles.forEach((particle, i) => {
-      const spectrumIndex = Math.floor((i / particles.length) * spectrum.length);
-      const freqValue = spectrum[spectrumIndex] || 0;
-      const force = freqValue / 255;
-      const angleOffset = particle.angle + particle.offset;
-      const radius = 20 + force * 140 + bass * 50;
-      const targetX = cx + Math.cos(angleOffset) * radius;
-      const targetY = cy + Math.sin(angleOffset) * radius;
-      particle.x += (targetX - particle.x) * 0.05;
-      particle.y += (targetY - particle.y) * 0.05;
-      const sizeMultiplier = 1 + force * 2.5 + bass * 1.8;
-      const currentSize = particle.size * sizeMultiplier;
-      const hueOffset = force * 40 + bass * 50 + (i / particles.length) * 30;
-      const hue = (190 + hueOffset) % 360;
-      const saturation = 70 + force * 20;
-      const lightness = 50 + force * 30 + bass * 20;
-      const alpha = 0.6 + overall * 0.4;
-      ctx.shadowBlur = currentSize * 2 + 10;
-      ctx.shadowColor = `hsla(${hue}, 100%, 60%, ${0.3 + overall * 0.3})`;
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+    // Nebula drift: two slow-moving radial blobs behind the field.
+    nebulaPhaseRef.current += 0.0015;
+    const nebulaA = nebulaPhaseRef.current;
+    for (let i = 0; i < 2; i++) {
+      const a = nebulaA + i * Math.PI;
+      const nx = cx + Math.cos(a) * maxDim * 0.18;
+      const ny = cy + Math.sin(a * 0.8) * maxDim * 0.12;
+      const nr = maxDim * (0.45 + i * 0.08) + level * maxDim * 0.1;
+      const neb = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+      const hue = i === 0 ? 220 : 280;
+      neb.addColorStop(0, `hsla(${hue}, 90%, ${isDark ? 55 : 65}%, ${isDark ? 0.08 : 0.05})`);
+      neb.addColorStop(0.6, `hsla(${hue}, 90%, ${isDark ? 45 : 55}%, ${isDark ? 0.03 : 0.02})`);
+      neb.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = neb;
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${Math.min(lightness, 85)}%, ${alpha})`;
+      ctx.arc(nx, ny, nr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // --- Star field ---
+    const speed = active ? 0.9 + bass * 9 + mid * 2.5 : 0.35;
+    const focal = maxDim * 0.55;
+    for (let i = 0; i < starsRef.current.length; i++) {
+      const s = starsRef.current[i];
+      s.pz = s.z;
+      s.z -= speed;
+      if (s.z <= 1) {
+        Object.assign(s, createStar(width, height, true));
+        s.pz = s.z;
+        continue;
+      }
+      const k = focal / s.z;
+      const px = cx + s.x * k;
+      const py = cy + s.y * k;
+      if (px < -50 || px > width + 50 || py < -50 || py > height + 50) {
+        Object.assign(s, createStar(width, height, true));
+        s.pz = s.z;
+        continue;
+      }
+      const kPrev = focal / s.pz;
+      const pxPrev = cx + s.x * kPrev;
+      const pyPrev = cy + s.y * kPrev;
+      const depthRatio = Math.max(0, Math.min(1, 1 - s.z / maxDim));
+      const twinkle = 0.7 + 0.3 * Math.sin(t * 3 + s.twinkle);
+      const alpha = (0.15 + depthRatio * 0.85) * twinkle;
+      const size = s.size * (0.5 + depthRatio * 1.6) * (1 + treble * 0.6);
+      const hue = s.hue + level * 40 + treble * 30;
+      ctx.beginPath();
+      ctx.moveTo(pxPrev, pyPrev);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = `hsla(${hue}, 92%, ${isDark ? 78 : 55}%, ${alpha * 0.55})`;
+      ctx.lineWidth = Math.max(0.4, size * 0.55);
+      ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(px, py, size, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${hue}, 92%, ${isDark ? 88 : 60}%, ${alpha})`;
+      if (depthRatio > 0.6) {
+        ctx.shadowBlur = size * 4;
+        ctx.shadowColor = `hsla(${hue}, 92%, 70%, ${alpha * 0.8})`;
+      }
       ctx.fill();
       ctx.shadowBlur = 0;
-      if (currentSize > 2) {
-        ctx.beginPath();
-        ctx.arc(particle.x - currentSize * 0.2, particle.y - currentSize * 0.2, currentSize * 0.3, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(0, 0%, 100%, ${0.2 + force * 0.3})`;
-        ctx.fill();
+    }
+    // The orb replaces the previous solid circular core.
+    const orbR = Math.min(maxDim * 0.16, 88) * (0.85 + level * 0.4);
+    const orbCX = cx + Math.sin(t * 0.22) * maxDim * 0.008;
+    const orbCY = cy + Math.cos(t * 0.17) * maxDim * 0.008;
+    // Soft halo behind the orb.
+    const orbHaloR = orbR * 2.6;
+    const orbHalo = ctx.createRadialGradient(orbCX, orbCY, orbR * 0.6, orbCX, orbCY, orbHaloR);
+    orbHalo.addColorStop(0, `hsla(${210 + level * 50}, 95%, 62%, ${isDark ? 0.22 : 0.16})`);
+    orbHalo.addColorStop(0.5, `hsla(${250 + bass * 40}, 90%, 58%, ${isDark ? 0.08 : 0.06})`);
+    orbHalo.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = orbHalo;
+    ctx.beginPath();
+    ctx.arc(orbCX, orbCY, orbHaloR, 0, Math.PI * 2);
+    ctx.fill();
+    // Multi-layer deformed circles (the actual "voice sphere").
+    const layers = active ? 4 : 3;
+    const deformSpeed = active ? 1.8 : 0.8;
+    for (let li = 0; li < layers; li++) {
+      const layerT = li / Math.max(1, layers - 1);
+      const layerR = orbR * (1.0 - layerT * 0.22);
+      const phase = li * 1.9;
+      const segs = 128;
+      ctx.beginPath();
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        const deform = 0.09 * Math.sin(3 * a + t * deformSpeed * 1.1 + phase) + 0.05 * Math.sin(5 * a - t * deformSpeed * 1.6 + phase * 1.7) + 0.03 * Math.sin(7 * a + t * deformSpeed * 2.1 + phase * 2.3);
+        const r = layerR * (1 + deform);
+        const x = orbCX + Math.cos(a) * r;
+        const y = orbCY + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
-      if (currentSize > 4) {
+      ctx.closePath();
+      const hue = (t * (active ? 35 : 20) + li * 55 + level * 60) % 360;
+      const grad = ctx.createRadialGradient(orbCX, orbCY, layerR * 0.1, orbCX, orbCY, layerR * 1.05);
+      grad.addColorStop(0, `hsla(${hue}, 88%, 68%, ${0.55 - layerT * 0.25})`);
+      grad.addColorStop(0.6, `hsla(${hue}, 88%, 58%, ${0.32 - layerT * 0.1})`);
+      grad.addColorStop(0.92, `hsla(${hue}, 88%, 50%, ${0.16 - layerT * 0.05})`);
+      grad.addColorStop(1, `hsla(${hue}, 88%, 46%, 0)`);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+    // Bright inner core of the orb.
+    const orbCoreR = orbR * (0.26 + 0.04 * Math.sin(t * (active ? 3.2 : 1.6)));
+    const orbCoreHue = (t * (active ? 45 : 28) + level * 90) % 360;
+    const orbCoreGrad = ctx.createRadialGradient(orbCX - orbCoreR * 0.25, orbCY - orbCoreR * 0.25, 0, orbCX, orbCY, orbCoreR);
+    orbCoreGrad.addColorStop(0, `hsla(${orbCoreHue}, 96%, 92%, 0.95)`);
+    orbCoreGrad.addColorStop(0.5, `hsla(${orbCoreHue}, 92%, 72%, 0.6)`);
+    orbCoreGrad.addColorStop(0.92, `hsla(${orbCoreHue}, 88%, 62%, 0.22)`);
+    orbCoreGrad.addColorStop(1, `hsla(${orbCoreHue}, 88%, 58%, 0)`);
+    ctx.fillStyle = orbCoreGrad;
+    ctx.beginPath();
+    ctx.arc(orbCX, orbCY, orbCoreR, 0, Math.PI * 2);
+    ctx.fill();
+    // Specular highlight on the orb.
+    const specX = orbCX - orbR * 0.32;
+    const specY = orbCY - orbR * 0.34;
+    const specR = orbR * 0.1;
+    const specGrad = ctx.createRadialGradient(specX, specY, 0, specX, specY, specR);
+    specGrad.addColorStop(0, "rgba(255,255,255,0.95)");
+    specGrad.addColorStop(0.5, "rgba(255,255,255,0.35)");
+    specGrad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = specGrad;
+    ctx.beginPath();
+    ctx.arc(specX, specY, specR, 0, Math.PI * 2);
+    ctx.fill();
+    // Thin expanding rings on strong bass hits, emitted from the orb edge.
+    if (active && bass > 0.55) {
+      const ringCount = 2;
+      for (let r = 0; r < ringCount; r++) {
+        const ringT = (t * 0.9 + r * 0.5) % 1;
+        const ringR = orbR * (1.4 + ringT * 4);
+        const ringAlpha = (1 - ringT) * 0.25 * (bass - 0.5) * 2;
+        if (ringAlpha <= 0) continue;
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, currentSize * 1.6, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${hue}, 80%, 70%, ${0.05 + force * 0.15})`;
-        ctx.lineWidth = 0.5;
+        ctx.arc(orbCX, orbCY, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${orbCoreHue + 30}, 95%, 70%, ${ringAlpha})`;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
-    });
-    // Center pulse
-    const centerSize = 15 + overall * 80;
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, centerSize);
-    const centerColor = isDark ? "rgba(78, 201, 176, " : "rgba(30, 150, 130, ";
-    grad.addColorStop(0, centerColor + (0.2 + overall * 0.3) + ")");
-    grad.addColorStop(0.3, centerColor + (0.1 + overall * 0.15) + ")");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, centerSize, 0, Math.PI * 2);
-    ctx.fill();
-    const pulseSize = 3 + overall * 8;
-    ctx.beginPath();
-    ctx.arc(cx, cy, pulseSize, 0, Math.PI * 2);
-    ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${0.3 + overall * 0.5})` : `rgba(255, 255, 255, ${0.5 + overall * 0.4})`;
-    ctx.fill();
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = `rgba(78, 201, 176, ${0.3 + overall * 0.4})`;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // Rings
-    for (let ring = 0; ring < 3; ring++) {
-      const ringRadius = 50 + overall * 100 + ring * 30;
-      const ringAlpha = 0.05 + overall * 0.1 - ring * 0.02;
-      ctx.beginPath();
-      ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = isDark ? `hsla(180, 80%, 60%, ${ringAlpha})` : `hsla(190, 80%, 50%, ${ringAlpha})`;
-      ctx.lineWidth = 0.5 + overall * 1.5 - ring * 0.3;
-      ctx.setLineDash([5, 10]);
-      ctx.stroke();
-      ctx.setLineDash([]);
     }
-    // Outer dots
-    const dotCount = 80;
-    for (let i = 0; i < dotCount; i++) {
-      const angle = (i / dotCount) * Math.PI * 2 + overall * 0.5;
-      const spectrumIndex = Math.floor((i / dotCount) * spectrum.length);
-      const value = spectrum[spectrumIndex] || 0;
-      const radius2 = 40 + (value / 255) * 80 + overall * 30;
-      const x = cx + Math.cos(angle) * radius2;
-      const y = cy + Math.sin(angle) * radius2;
-      const dotSize = 1 + (value / 255) * 4 + overall * 2;
-      const hue = 180 + (value / 255) * 60;
-      ctx.shadowBlur = dotSize * 3;
-      ctx.shadowColor = `hsla(${hue}, 100%, 60%, ${0.2 + (value / 255) * 0.3})`;
-      ctx.beginPath();
-      ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(${hue}, 80%, 70%, ${0.3 + (value / 255) * 0.5})`;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
+    // --- Subtle vignette ---
+    const vig = ctx.createRadialGradient(cx, cy, maxDim * 0.35, cx, cy, maxDim * 0.75);
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, isDark ? "rgba(0,0,0,0.45)" : "rgba(120,130,150,0.12)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, width, height);
   };
   useEffect(() => {
     if (!containerRef.current || !audioUrl) return;
@@ -250,35 +249,24 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     canvasRef.current = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    // Create audio element - works for both local and remote URLs
     const audio = document.createElement("audio");
     audio.src = audioUrl;
-    audio.crossOrigin = "anonymous"; // Required for remote audio CORS
+    audio.crossOrigin = "anonymous";
     audio.preload = "auto";
     audio.style.display = "none";
     document.body.appendChild(audio);
     audioRef.current = audio;
     const onCanPlay = () => {
       isLoadingRef.current = false;
-      // Get duration from audio element
       if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
-        if (onDuration) {
-          onDuration(audio.duration);
-        }
+        if (onDuration) onDuration(audio.duration);
       }
-      if (onLoaded) {
-        onLoaded();
-      }
-      if (isPlaying) {
-        audio.play().catch(() => {});
-      }
+      if (onLoaded) onLoaded();
+      if (isPlaying) audio.play().catch(() => {});
     };
-    // Handle duration loaded
     const onDurationChange = () => {
       if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
-        if (onDuration) {
-          onDuration(audio.duration);
-        }
+        if (onDuration) onDuration(audio.duration);
       }
     };
     audio.addEventListener("canplaythrough", onCanPlay);
@@ -292,20 +280,17 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
       canvas.height = logicalHeight * dpr;
       canvas.style.width = logicalWidth + "px";
       canvas.style.height = logicalHeight + "px";
-      ctx.scale(dpr, dpr);
-      particlesRef.current = createParticles(logicalWidth, logicalHeight);
-      starDustRef.current = createStarDust(logicalWidth, logicalHeight);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      initStars(logicalWidth, logicalHeight);
     };
     resizeCanvas();
-    const resizeObserver = new ResizeObserver(() => {
-      resizeCanvas();
-    });
+    const resizeObserver = new ResizeObserver(() => resizeCanvas());
     resizeObserver.observe(container);
-    // Create audio context
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioContextRef.current = audioContext;
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.82;
     analyserRef.current = analyser;
     try {
       const source = audioContext.createMediaElementSource(audio);
@@ -320,29 +305,19 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     isInitializedRef.current = true;
     const onPlay = () => {
       isPlayingRef.current = true;
-      if (audioContext.state === "suspended") {
-        audioContext.resume();
-      }
-      if (onPlayStateChange) {
-        onPlayStateChange(true);
-      }
+      if (audioContext.state === "suspended") audioContext.resume();
+      if (onPlayStateChange) onPlayStateChange(true);
     };
     const onPause = () => {
       isPlayingRef.current = false;
-      if (onPlayStateChange) {
-        onPlayStateChange(false);
-      }
+      if (onPlayStateChange) onPlayStateChange(false);
     };
     const onEnded = () => {
       isPlayingRef.current = false;
-      if (onPlayStateChange) {
-        onPlayStateChange(false);
-      }
+      if (onPlayStateChange) onPlayStateChange(false);
     };
     const onTimeUpdateHandler = () => {
-      if (onTimeUpdate && audioRef.current) {
-        onTimeUpdate(audioRef.current.currentTime);
-      }
+      if (onTimeUpdate && audioRef.current) onTimeUpdate(audioRef.current.currentTime);
     };
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
@@ -353,32 +328,26 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
-      const canvas = canvasRef.current;
-      const ctx2 = canvas.getContext("2d");
+      const canvasEl = canvasRef.current;
+      const ctx2 = canvasEl.getContext("2d");
       if (!ctx2) return;
       const analyser2 = analyserRef.current;
       const dataArray2 = dataArrayRef.current;
       analyser2.getByteFrequencyData(dataArray2 as Uint8Array<ArrayBuffer>);
       const hasData = dataArray2.some((v) => v > 0);
-      ctx2.clearRect(0, 0, canvas.width, canvas.height);
-      ctx2.fillStyle = isDark ? "rgba(26, 29, 38, 0.95)" : "rgba(248, 249, 250, 0.95)";
-      ctx2.fillRect(0, 0, canvas.width, canvas.height);
-      const bass = hasData ? dataArray2.slice(0, 10).reduce((a, b) => a + b, 0) / (10 * 255) : 0.05 + Math.sin(Date.now() / 3000) * 0.03;
-      const mid = hasData ? dataArray2.slice(10, 30).reduce((a, b) => a + b, 0) / (20 * 255) : 0.05 + Math.cos(Date.now() / 2500) * 0.03;
-      const treble = hasData ? dataArray2.slice(30, 60).reduce((a, b) => a + b, 0) / (30 * 255) : 0.05 + Math.sin(Date.now() / 2000 + 1) * 0.03;
+      const active = isPlayingRef.current && hasData;
+      const bass = hasData ? dataArray2.slice(0, 12).reduce((a, b) => a + b, 0) / (12 * 255) : 0.04 + Math.sin(performance.now() / 3200) * 0.02;
+      const mid = hasData ? dataArray2.slice(12, 48).reduce((a, b) => a + b, 0) / (36 * 255) : 0.04 + Math.cos(performance.now() / 2600) * 0.02;
+      const treble = hasData ? dataArray2.slice(48, 96).reduce((a, b) => a + b, 0) / (48 * 255) : 0.04 + Math.sin(performance.now() / 2200 + 1) * 0.02;
       const dpr = window.devicePixelRatio || 1;
-      drawParticles(ctx2, canvas.width / dpr, canvas.height / dpr, dataArray2, bass, mid, treble);
+      drawFrame(ctx2, canvasEl.width / dpr, canvasEl.height / dpr, dataArray2, bass, mid, treble, active);
       animationRef.current = requestAnimationFrame(animate);
     };
     animate();
     return () => {
       resizeObserver.disconnect();
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (audioContextRef.current) audioContextRef.current.close();
       if (audioRef.current) {
         audioRef.current.removeEventListener("canplaythrough", onCanPlay);
         audioRef.current.removeEventListener("durationchange", onDurationChange);
@@ -400,9 +369,7 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
     if (!audio || !isInitializedRef.current) return;
     if (isLoadingRef.current) return;
     if (isPlaying) {
-      audio.play().catch((e) => {
-        console.error("Failed to play audio:", e);
-      });
+      audio.play().catch((e) => console.error("Failed to play audio:", e));
       if (audioContextRef.current && audioContextRef.current.state === "suspended") {
         audioContextRef.current.resume();
       }
@@ -419,8 +386,8 @@ const AudioVisualizer = React.forwardRef<AudioVisualizerRef, AudioVisualizerProp
         minHeight: "140px",
         position: "relative",
         overflow: "hidden",
-        borderRadius: "4px",
-        backgroundColor: isDark ? "#1a1d26" : "#f8f9fa",
+        borderRadius: 0,
+        backgroundColor: isDark ? "#05070c" : "#f4f6fa",
       }}
     />
   );

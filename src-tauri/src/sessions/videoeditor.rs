@@ -2,7 +2,7 @@ use crate::commands::add_session_to_profile;
 use crate::commands::get_settings_dir;
 use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
-use crate::subsystem::get_session_cover_path;
+use crate::subsystem::get_session_thumbnail_path;
 use crate::subsystem::load_material_metadata;
 use crate::subsystem::videoeditor::get_downloads_root_dir;
 use crate::subsystem::videoeditor::material::{register_material, UploadResult};
@@ -655,7 +655,7 @@ pub fn cmd_list_video_dialog_sessions(nle_edit_mode: String) -> Result<Vec<serde
                         // on it even for legacy configs.
                         obj.insert("nle_edit_mode".to_string(), serde_json::json!(session_edit_mode.as_str()));
                         // Get session cover thumbnail
-                        let cover_path = get_session_cover_path(&session_id);
+                        let cover_path = get_session_thumbnail_path(&session_id);
                         let thumbnail_path = if cover_path.exists() { Some(cover_path.to_string_lossy().to_string()) } else { None };
                         obj.insert("thumbnail".to_string(), serde_json::json!(thumbnail_path));
                     }
