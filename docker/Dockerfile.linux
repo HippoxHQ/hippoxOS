@@ -65,8 +65,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Tell bindgen where to find libclang (Ubuntu 24.04 ships LLVM 18)
 ENV LIBCLANG_PATH=/usr/lib/llvm-18/lib
 
-# Install Node.js 20
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 22
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
