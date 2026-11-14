@@ -5,9 +5,9 @@
     "linux": {
       "deb": {
         "files": {
-          "/usr/lib/hippox/bin/ffmpeg": "bin/ffmpeg/ffmpeg",
-          "/usr/lib/hippox/bin/ffprobe": "bin/ffprobe/ffprobe",
-          "/usr/lib/hippox/bin/yt-dlp": "bin/yt-dlp/yt-dlp"
+          "/usr/lib/hippox/bin/ffmpeg": "bin/ffmpeg/ffmpeg-x86_64-unknown-linux-gnu",
+          "/usr/lib/hippox/bin/ffprobe": "bin/ffprobe/ffprobe-x86_64-unknown-linux-gnu",
+          "/usr/lib/hippox/bin/yt-dlp": "bin/yt-dlp/yt-dlp-x86_64-unknown-linux-gnu"
         }
       }
     }
