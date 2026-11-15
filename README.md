@@ -127,6 +127,24 @@ This subsystem is powered by a proprietary **NLE (Non-Linear Editing) Engine** r
 
 When users describe editing intent through natural language, the system parses the instructions and maps them to specific NLE Engine operations. Video creation no longer relies on complex timeline dragging and parameter adjustments—users simply describe the desired editing effect in natural language, and the system drives the Hippox Kernel to schedule the appropriate video editing drivers, which in turn drive the NLE Engine to perform the underlying media processing.
 
+### Color Grading Panel
+
+Added a color grading panel to the NLE engine, along with its LLM control pipeline. The color grading panel operates on track blocks.
+
+<img alt="HippoxOS Color Grading Panel" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Track_Block_Color_Grading_Demo.gif" />
+
+### Audio Mixer
+
+Added an audio mixer to the NLE engine, along with its LLM control pipeline. The audio mixer operates on track blocks.
+
+<img alt="HippoxOS Audio Mixer" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Track_Block_Mixing_Demo.gif" />
+
+### Frame Trimming &&  Frame Image Cutout
+
+Added frame trimming to the NLE engine And Added Frame Image Cutout (background removal) to the NLE engine.
+
+<img alt="HippoxOS Frame Trimming" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Image_Cutout_Demo.gif" />
+
 ### Drawing Canvas
 
 The Video Editing Subsystem includes a built-in drawing canvas that lets users hand-draw directly on the player with a brush. Strokes are captured as an overlay layer on top of the timeline, so freehand annotation, sketching, and marking can be composited with video content in real time and adjusted alongside other overlay elements.
@@ -162,11 +180,38 @@ The Video Editing Subsystem integrates native screen recording, capturing conten
 
 **Camera Recording** is also supported: users can capture from a webcam and bring the footage directly into the timeline, with no preview image required—recording is initiated and managed through the same conversational and UI controls as the other capture modes.
 
+### Audio Recording
+
+<img alt="HippoxOS Audio Recording" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Audio_Recording_Demo.gif" />
+
+### Mobile Asset Upload
+
+Upload assets from mobile devices.
+
+> 💡 **Note:** The mobile device and the computer must be on the same network.
+
+<img alt="HippoxOS Mobile Upload" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Mobile_Upload_Demo.gif" />
+
+### Upload Cover Image
+
+<img alt="HippoxOS Upload Cover Image" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Upload_Cover_Image_Demo.gif" />
+
+### Player Image Quality Settings
+
+<img alt="HippoxOS Mobile Upload" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Player_Image_Quality_Settings_Demo.gif" />
+
+
 ### LLM media file generation capabilities.
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/llm-media-generation.gif" />
 
 You can integrate multimodal models into the system to generate media files for direct use in timeline editing.
+
+## Audio Editor Subsystem
+
+This is the first implementation that lets the LLM freely control audio waveform data for editing.
+
+<img alt="HippoxOS Audio Editor" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Audio_Editing_Subsystem_Demo.gif" />
 
 ## Pixel Animation Editor Subsystem
 

@@ -127,6 +127,24 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 当用户通过自然语言描述编辑意图时，系统解析指令并映射为 NLE 引擎的具体操作。视频创作不再依赖于复杂的时间轴拖拽和参数调节，用户只需用自然语言描述想要的编辑效果，系统通过 Hippox 内核调度相应的视频编辑驱动，驱动 NLE 引擎完成底层媒体处理。
 
+### 调色面板
+
+为 NLE 引擎新增了调色面板，以及配套的 LLM 控制管线。调色面板作用于轨道块。
+
+<img alt="Color Grading Panel" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Track_Block_Color_Grading_Demo.gif" />
+
+### 音频混音器
+
+为 NLE 引擎新增了音频混音器，以及配套的 LLM 控制管线。音频混音器作用于轨道块。
+
+<img alt="Audio Mixer" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Track_Block_Mixing_Demo.gif" />
+
+### 帧裁剪 && 帧图像抠图
+
+为 NLE 引擎新增了帧修剪功能，并新增了帧图像抠图（背景移除）功能。
+
+<img alt="Frame Trimming" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Image_Cutout_Demo.gif" />
+
 ### 绘图画板
 
 视频编辑子系统内置绘图画板功能，用户可直接在播放器上用画笔手绘图。笔迹作为叠加层记录在时间线上，可与视频内容实时合成，并与其他叠加层元素一同调整，适用于自由批注、草图绘制和标记说明。
@@ -162,11 +180,33 @@ HippoxOS 的设计围绕以下三个核心原则展开：
 
 **摄像头录制**同样受支持：用户可从摄像头采集画面并直接带入时间线，无需预览图，录制通过与其他录制模式一致的对话和 UI 控件发起与管理。
 
+### 音频录制
+
+<img alt="Audio Recording" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Audio_Recording_Demo.gif" />
+
+### 移动端素材上传
+
+支持从移动设备上传素材。
+
+> 💡 **注意：** 移动设备与电脑必须处于同一网络。
+
+<img alt="Mobile Upload" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Mobile_Upload_Demo.gif" />
+
+### 播放器画质设置
+
+<img alt="Mobile Upload" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Player_Image_Quality_Settings_Demo.gif" />
+
 ### AI多媒体文件生成能力.
 
 <img src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/llm-media-generation.gif" />
 
 你可以在系统内集成多模态模型用于生成媒体文件, 直接用于时间线编辑.
+
+## 音频编辑器子系统
+
+这是首个允许 LLM 自由控制音频波形数据进行编辑的实现。
+
+<img alt="Audio Editor" src="https://raw.githubusercontent.com/HippoxHQ/assets/main/demo/Audio_Editing_Subsystem_Demo.gif" />
 
 ## 像素动画编辑器子系统
 
