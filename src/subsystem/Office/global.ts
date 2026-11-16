@@ -1,6 +1,6 @@
-interface ImageEditorState {
+interface OfficeState {
 }
-const state: ImageEditorState = {
+const state: OfficeState = {
 };
-export const imageEditorStateManager = {
+export const officeEditorStateManager = {
 };
