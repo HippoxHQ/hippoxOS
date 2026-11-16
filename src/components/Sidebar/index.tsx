@@ -22,7 +22,7 @@ if (typeof document !== "undefined") {
 /**
  * Subsystem sidebar item ids that can be opened in a separate window.
  */
-const NEW_WINDOW_CAPABLE_ITEMS = ["generalChat", "codeEditorChat", "chartChat", "mapChat", "videoEditor", "audioEditor", "sandbox3d", "blockchain", "imageEditor", "pixelEditor", "databaseClient", "dockerClient", "apiClient", "userProfile"];
+const NEW_WINDOW_CAPABLE_ITEMS = ["generalChat", "codeEditorChat", "chartChat", "mapChat", "videoEditor", "audioEditor", "storyCanvas", "sandbox3d", "blockchain", "imageEditor", "pixelEditor", "databaseClient", "dockerClient", "apiClient", "userProfile", "office"];
 /**
  * Small hover context menu for a sidebar item.
  */
@@ -347,6 +347,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onResetSession, onClearLog
       "dockerClient",
       "apiClient",
       "home",
+      "storyCanvas",
+      "office",
     ];
     // Keep video editor state alive for both the video editor and the audio
     // editor entry, since the audio editor opens inside the video editor page.

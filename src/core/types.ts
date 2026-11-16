@@ -153,4 +153,6 @@ export enum SessionDomain {
     DataBaseClient = "DataBaseClient",
     DockerClient = "DockerClient",
     ApiClient = "ApiClient",
+    StoryCanvas = "StoryCanvas",
+    Office = "office",
 }

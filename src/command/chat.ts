@@ -17,6 +17,8 @@ export enum SubSystemEnum {
     DataBaseClient = "database_client",
     DockerClient = "docker_client",
     ApiClient = "api_client",
+    StoryCanvas = "story_canvas",
+    Office = "office",
 }
 /**
  * Human-readable display names for each subsystem.
@@ -34,6 +36,8 @@ export const SubSystemDisplayName: Record<SubSystemEnum, string> = {
     [SubSystemEnum.DataBaseClient]: "Database Client",
     [SubSystemEnum.DockerClient]: "Docker Client",
     [SubSystemEnum.ApiClient]: "API Client",
+    [SubSystemEnum.StoryCanvas]: "Story Canvas",
+    [SubSystemEnum.Office]: "Office",
 };
 export const hippoxCommands = {
     async setLanguage(language: string): Promise<void> {

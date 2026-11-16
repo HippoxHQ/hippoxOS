@@ -21,18 +21,19 @@ class AppConfig {
     }
 }
 export const appConfig = AppConfig.getInstance();
-
 // subsystem switch
 export const SubSytemSwitch = {
     generalChat: true,
     videoEditor: true,
     audioEditor: true,
+    imageEditor: false,
+    storyCanvas: true,
+    office: true,
     chartChat: true,
     codeEditorChat: true,
     mapChat: true,
     sandbox3d: true,
     blockchain: false,
-    imageEditor: false,
     pixelEditor: true,
     databaseClient: false,
     dockerClient: true,

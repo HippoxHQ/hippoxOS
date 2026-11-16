@@ -9,7 +9,9 @@ if (SubSytemSwitch.generalChat) { topMenuItems.push({ id: "generalChat", icon: "
 if (SubSytemSwitch.videoEditor) { topMenuItems.push({ id: "videoEditor", icon: "videoEditor", label: "menu.videoEditor", section: "main" }); }
 if (SubSytemSwitch.audioEditor) { topMenuItems.push({ id: "audioEditor", icon: "audioEditor", label: "menu.audioEditor", section: "main" }); }
 if (SubSytemSwitch.imageEditor) { topMenuItems.push({ id: "imageEditor", icon: "imageEditor", label: "menu.imageEditor", section: "main" }); }
+if (SubSytemSwitch.storyCanvas) { topMenuItems.push({ id: "storyCanvas", icon: "storyCanvas", label: "menu.storyCanvas", section: "main" }); }
 if (SubSytemSwitch.pixelEditor) { topMenuItems.push({ id: "pixelEditor", icon: "pixelEditor", label: "menu.pixelEditor", section: "main" }); }
+if (SubSytemSwitch.office) { topMenuItems.push({ id: "office", icon: "office", label: "menu.office", section: "main" }); }
 if (SubSytemSwitch.chartChat) { topMenuItems.push({ id: "chartChat", icon: "chart", label: "menu.chart", section: "main" }); }
 if (SubSytemSwitch.codeEditorChat) { topMenuItems.push({ id: "codeEditorChat", icon: "codeEditor", label: "menu.codeEditor", section: "main" }); }
 if (SubSytemSwitch.mapChat) { topMenuItems.push({ id: "mapChat", icon: "map", label: "menu.map", section: "main" }); }

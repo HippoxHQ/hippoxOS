@@ -92,8 +92,8 @@ const DataBaseClientChatPanel: React.FC<DataBaseClientChatPanelProps> = ({
     id: "welcome",
     role: RoleEnum.LLM,
     content: isZh
-      ? "🗄️ 欢迎来到 Hippox 数据库客户端！我可以帮你连接数据库、编写和执行 SQL、浏览表结构、分析查询结果。告诉我你想做什么～"
-      : "🗄️ Welcome to the Hippox Database Client! I can help you connect to databases, write and run SQL, browse table schemas, and analyze query results. Tell me what you'd like to do～",
+      ? "🗄️ 欢迎来到 HippoxOS 数据库客户端！我可以帮你连接数据库、编写和执行 SQL、浏览表结构、分析查询结果。告诉我你想做什么～"
+      : "🗄️ Welcome to the HippoxOS Database Client! I can help you connect to databases, write and run SQL, browse table schemas, and analyze query results. Tell me what you'd like to do～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend using the DataBaseClient session commands.

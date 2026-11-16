@@ -176,6 +176,8 @@ export const SUBSYSTEM_EVENT_MAP: Record<
     databaseclient: { event: APP_WINDOW_EVENTS.DATABASE_CLIENT_SWITCH_SESSION, panel: "databaseClient" },
     dockerclient: { event: APP_WINDOW_EVENTS.DOCKER_CLIENT_SWITCH_SESSION, panel: "dockerClient" },
     apiclient: { event: APP_WINDOW_EVENTS.API_CLIENT_SWITCH_SESSION, panel: "apiClient" },
+    storyCanvas: { event: APP_WINDOW_EVENTS.SESSION_SELECTED, panel: "storyCanvas" },
+    office: { event: APP_WINDOW_EVENTS.SESSION_SELECTED, panel: "office" },
 };
 /**
  * Get the subsystem event and panel for a given subsystem

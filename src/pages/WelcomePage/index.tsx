@@ -90,9 +90,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
   const [isDomainHovered, setIsDomainHovered] = useState(false);
   /**
    * Theme-aware art text colors.
-   * - light theme: text = --text-primary, white flowing highlight.
-   * - dark / black themes: white text + a soft background-matched shimmer.
-   * - all other themes: follow global theme (text = --text-primary, flow = --accent-color).
    */
   const getThemeArtColors = (): { textColor: string; lightColor: string } => {
     if (typeof window === "undefined" || typeof document === "undefined") {
@@ -134,7 +131,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     };
   }, []);
   const allDomains: {
-    id: "general" | "code" | "map" | "chart" | "video" | "audio" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "databaseClient" | "dockerClient" | "apiClient";
+    id: "general" | "code" | "map" | "chart" | "video" | "audio" | "sandbox" | "blockchain" | "imageEditor" | "pixelEditor" | "storyCanvas" | "office" | "databaseClient" | "dockerClient" | "apiClient";
     label: string;
     labelEn: string;
     description: string;
@@ -187,6 +184,28 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
       pageId: "imageEditor",
       subsystem: "imageEditor",
       enabled: SubSytemSwitch.imageEditor,
+    },
+    {
+      id: "storyCanvas",
+      label: "剧本画布",
+      labelEn: "Story Canvas",
+      description: "剧本拆分 · 分镜编排 · 镜头生成",
+      descriptionEn: "Script Breakdown · Shot Planning · Shot Generation",
+      bgEmoji: "🎞️",
+      pageId: "storyCanvas",
+      subsystem: "storyCanvas",
+      enabled: SubSytemSwitch.storyCanvas,
+    },
+    {
+      id: "office",
+      label: "办公",
+      labelEn: "Office",
+      description: "任务管理 · 文档协作 · 日程安排",
+      descriptionEn: "Task Management · Document Collaboration · Scheduling",
+      bgEmoji: "📋",
+      pageId: "office",
+      subsystem: "office",
+      enabled: SubSytemSwitch.office,
     },
     {
       id: "pixelEditor",

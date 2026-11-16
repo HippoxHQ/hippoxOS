@@ -200,7 +200,9 @@ function App() {
       view === "pixelEditor" ||
       view === "databaseClient" ||
       view === "dockerClient" ||
-      view === "apiClient"
+      view === "apiClient" ||
+      view === "storyCanvas" ||
+      view === "office"
     ) {
       switchContentArea(view);
       return;

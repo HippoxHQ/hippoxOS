@@ -41,6 +41,8 @@ import DockerClientPage from "../../subsystem/DockerClient";
 import ApiClientPage from "../../subsystem/ApiClient";
 import { MENU_PANEL_WIDTH } from "../constants";
 import { getSubsystemEventInfo, onOpenSubsystem } from "../AppWindowEventManager";
+import StoryCanvasPage from "../../subsystem/StoryCanvas";
+import OfficePage from "../../subsystem/Office";
 declare global {
   interface Window {
     __pageResources: {
@@ -85,6 +87,8 @@ declare global {
     __databaseClientInstance: any;
     __dockerClientInstance: any;
     __apiClientInstance: any;
+    __storyCanvasInstance: any;
+    __officeInstance: any;
   }
 }
 if (typeof window !== "undefined") {
@@ -129,6 +133,8 @@ const PAGE_TYPES = {
   STORAGE: "storage",
   SETTINGS: "settings",
   ENGINE_GROUP: "engine_group",
+  STORY_CANVAS: "storyCanvas",
+  OFFICE: "office",
 } as const;
 type PageType = (typeof PAGE_TYPES)[keyof typeof PAGE_TYPES];
 /**
@@ -143,12 +149,14 @@ const SUBSYSTEM_PAGES: PageType[] = [
   PAGE_TYPES.AUDIO_EDITOR,
   PAGE_TYPES.SANDBOX_3D,
   PAGE_TYPES.BLOCKCHAIN,
-  // New subsystem pages
   PAGE_TYPES.IMAGE_EDITOR,
   PAGE_TYPES.PIXEL_EDITOR,
   PAGE_TYPES.DATABASE_CLIENT,
   PAGE_TYPES.DOCKER_CLIENT,
   PAGE_TYPES.API_CLIENT,
+  PAGE_TYPES.API_CLIENT,
+  PAGE_TYPES.STORY_CANVAS,
+  PAGE_TYPES.OFFICE,
 ];
 function cleanupPageResources(pageKey: PageType): void {
   try {
@@ -275,6 +283,22 @@ function cleanupPageResources(pageKey: PageType): void {
             window.__apiClientInstance.destroy?.();
           } catch (e) {}
           window.__apiClientInstance = null;
+        }
+        break;
+      case PAGE_TYPES.STORY_CANVAS:
+        if (window.__storyCanvasInstance) {
+          try {
+            window.__storyCanvasInstance.destroy?.();
+          } catch (e) {}
+          window.__storyCanvasInstance = null;
+        }
+        break;
+      case PAGE_TYPES.OFFICE:
+        if (window.__officeInstance) {
+          try {
+            window.__officeInstance.destroy?.();
+          } catch (e) {}
+          window.__officeInstance = null;
         }
         break;
       default:
@@ -880,12 +904,13 @@ export function AppContent({
     const isAudioEditor = currentContentPanel === "audioEditor";
     const isSandbox3d = currentContentPanel === "sandbox3d";
     const isBlockchain = currentContentPanel === "blockchain";
-    // New subsystem page flags
     const isImageEditor = currentContentPanel === "imageEditor";
     const isPixelEditor = currentContentPanel === "pixelEditor";
     const isDatabaseClient = currentContentPanel === "databaseClient";
     const isDockerClient = currentContentPanel === "dockerClient";
     const isApiClient = currentContentPanel === "apiClient";
+    const isStoryCanvas = currentContentPanel === "storyCanvas";
+    const isOffice = currentContentPanel === "office";
     let contentElement: React.ReactNode;
     if (isChatPage) {
       if (showWelcome && !currentContentPanel) {
@@ -1018,6 +1043,10 @@ export function AppContent({
     } else if (isApiClient) {
       // Render the API client page
       contentElement = renderSubsystemPage(PAGE_TYPES.API_CLIENT, <ApiClientPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("apiClient", "apiclient")} />);
+    } else if (isStoryCanvas) {
+      contentElement = renderSubsystemPage(PAGE_TYPES.STORY_CANVAS, <StoryCanvasPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("storyCanvas")} />);
+    } else if (isOffice) {
+      contentElement = renderSubsystemPage(PAGE_TYPES.OFFICE, <OfficePage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("office")} />);
     } else {
       // Other non-subsystem panels
       switch (currentContentPanel) {

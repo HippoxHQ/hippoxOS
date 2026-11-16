@@ -113,7 +113,7 @@ const FinanceChatPanel: React.FC<FinanceChatPanelProps> = ({
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "嗨～ 我是 Hippox 金融分析引擎！📊 我可以帮你画K线、分析趋势、分析数据，有什么想看的图表尽管说～" : "Hi～ I'm Hippox Financial Analysis Engine! 📊 I can help you draw candlesticks, analyze trends, and analyze data. Just tell me what charts you want to see～",
+    content: language === "zh" ? "嗨～ 我是 HippoxOS 金融分析引擎！📊 我可以帮你画K线、分析趋势、分析数据，有什么想看的图表尽管说～" : "Hi～ I'm HippoxOS Financial Analysis Engine! 📊 I can help you draw candlesticks, analyze trends, and analyze data. Just tell me what charts you want to see～",
     timestamp: new Date().toISOString(),
   };
   const isZh = t("i18n") === "zh";

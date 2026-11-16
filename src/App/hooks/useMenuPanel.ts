@@ -30,6 +30,8 @@ export type ContentPanelView =
   | "databaseClient"
   | "dockerClient"
   | "apiClient"
+  | "storyCanvas"
+  | "office"
   | null;
 /**
  * All panel ids that may be passed via the `?panel=` query parameter.
@@ -139,6 +141,8 @@ export function useMenuPanel() {
       "databaseClient",
       "dockerClient",
       "apiClient",
+      "storyCanvas",
+      "office",
     ];
     if (contentViews.includes(view)) {
       setCurrentContentPanel(view as ContentPanelView);

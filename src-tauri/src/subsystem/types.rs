@@ -19,6 +19,8 @@ pub enum SubSystemEnum {
     DataBaseClient,
     DockerClient,
     ApiClient,
+    StoryCanvas,
+    Office,
 }
 impl SubSystemEnum {
     /// Enum -> canonical lowercase string.
@@ -37,6 +39,8 @@ impl SubSystemEnum {
             SubSystemEnum::DataBaseClient => "database_client",
             SubSystemEnum::DockerClient => "docker_client",
             SubSystemEnum::ApiClient => "api_client",
+            SubSystemEnum::StoryCanvas => "story_canvas",
+            SubSystemEnum::Office => "office",
         }
     }
     /// String -> enum. Case-insensitive; unknown values return an error.
@@ -55,6 +59,8 @@ impl SubSystemEnum {
             "database_client" => Ok(SubSystemEnum::DataBaseClient),
             "docker_client" => Ok(SubSystemEnum::DockerClient),
             "api_client" => Ok(SubSystemEnum::ApiClient),
+            "story_canvas" => Ok(SubSystemEnum::StoryCanvas),
+            "office" => Ok(SubSystemEnum::Office),
             other => Err(format!("Unknown subsystem: {}", other)),
         }
     }

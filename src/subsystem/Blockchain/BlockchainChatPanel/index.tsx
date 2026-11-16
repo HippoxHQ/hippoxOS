@@ -81,8 +81,8 @@ const BlockchainChatPanel: React.FC<BlockchainChatPanelProps> = ({ onSendMessage
     role: RoleEnum.LLM,
     content:
       language === "zh"
-        ? "⛓️ 欢迎来到 Hippox 区块链分析引擎！我可以帮你分析链上数据、解析交易、追踪地址与智能合约。告诉我你想了解什么～"
-        : "⛓️ Welcome to Hippox Blockchain Analysis Engine! I can help you analyze on-chain data, parse transactions, trace addresses and smart contracts. Tell me what you'd like to explore～",
+        ? "⛓️ 欢迎来到 HippoxOS 区块链分析引擎！我可以帮你分析链上数据、解析交易、追踪地址与智能合约。告诉我你想了解什么～"
+        : "⛓️ Welcome to HippoxOS Blockchain Analysis Engine! I can help you analyze on-chain data, parse transactions, trace addresses and smart contracts. Tell me what you'd like to explore～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend

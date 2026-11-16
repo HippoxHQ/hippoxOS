@@ -36,8 +36,7 @@ use crate::commands::{
 use crate::commons::FileUtils;
 use crate::subsystem::videoeditor::NLEEditMode;
 use crate::subsystem::{
-    get_apiclient_history_statistics, get_databaseclient_history_statistics, get_dockerclient_history_statistics, get_imageeditor_history_statistics,
-    get_pixeleditor_history_statistics, SubSystemEnum,
+    SubSystemEnum, get_apiclient_history_statistics, get_databaseclient_history_statistics, get_dockerclient_history_statistics, get_imageeditor_history_statistics, get_office_history_statistics, get_pixeleditor_history_statistics, get_storycanvas_history_statistics,
 };
 use once_cell::sync::OnceCell;
 use parking_lot::RwLock;
@@ -74,10 +73,12 @@ fn statistics_path_for(subsystem: SubSystemEnum) -> PathBuf {
         SubSystemEnum::DataBaseClient => get_databaseclient_history_statistics(),
         SubSystemEnum::DockerClient => get_dockerclient_history_statistics(),
         SubSystemEnum::ApiClient => get_apiclient_history_statistics(),
+        SubSystemEnum::Office => get_office_history_statistics(),
+        SubSystemEnum::StoryCanvas => get_storycanvas_history_statistics(),
     }
 }
 /// All subsystems that own a ledger. Used for iteration / migration.
-fn all_subsystems() -> [SubSystemEnum; 13] {
+fn all_subsystems() -> [SubSystemEnum; 15] {
     [
         SubSystemEnum::General,
         SubSystemEnum::Finance,
@@ -92,6 +93,8 @@ fn all_subsystems() -> [SubSystemEnum; 13] {
         SubSystemEnum::DataBaseClient,
         SubSystemEnum::DockerClient,
         SubSystemEnum::ApiClient,
+        SubSystemEnum::Office,
+        SubSystemEnum::StoryCanvas
     ]
 }
 /// Which pipeline produced a record.

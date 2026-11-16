@@ -47,3 +47,8 @@ src-tauri/src/subsystem/imageeditor/
 src/command/PixelEditor/
 src/subsystem/PixelEditor/
 src-tauri/src/subsystem/pixeleditor/
+
+# Story Canvas module
+src/command/StoryCanvas/
+src/subsystem/StoryCanvas/
+src-tauri/src/subsystem/storycanvas/

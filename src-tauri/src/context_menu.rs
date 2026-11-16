@@ -1,6 +1,7 @@
 // Cross-platform context menu registration for "Open With HippoxOS".
 use std::path::PathBuf;
 /// Append a line to a temp log file so it is visible even under windows_subsystem.
+#[allow(dead_code)]
 fn trace_log(msg: &str) {
     if let Ok(dir) = std::env::var("TEMP") {
         let path = PathBuf::from(dir).join("hippoxos_context_menu.log");
@@ -11,6 +12,7 @@ fn trace_log(msg: &str) {
     }
 }
 /// Returns the current executable path.
+#[allow(dead_code)]
 fn current_exe() -> Option<PathBuf> {
     std::env::current_exe().ok()
 }
@@ -91,122 +93,38 @@ pub fn unregister_context_menu() -> Result<(), String> {
     Ok(())
 }
 // ==================== Linux ====================
-#[cfg(target_os = "linux")]
-fn home_dir() -> PathBuf {
-    std::env::var("HOME").map(PathBuf::from).unwrap_or_else(|_| PathBuf::from("/tmp"))
-}
-#[cfg(target_os = "linux")]
-fn write_nemo_action(exe: &str) -> Result<(), String> {
-    let dir = home_dir().join(".local/share/nemo/actions");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create nemo actions dir: {}", e))?;
-    let path = dir.join("hippoxos.nemo_action");
-    let content = format!(
-        "[Nemo Action]\nName=Open With HippoxOS\nComment=Open this file in HippoxOS\nExec=\"{}\" %F\nIcon=hippoxos\nSelection=none\nExtensions=any;\n",
-        exe
-    );
-    std::fs::write(&path, content).map_err(|e| format!("write nemo action: {}", e))?;
-    trace_log(&format!("nemo action written: {:?}", path));
-    Ok(())
-}
-#[cfg(target_os = "linux")]
-fn write_pcmanfm_action(exe: &str) -> Result<(), String> {
-    let dir = home_dir().join(".local/share/file-manager/actions");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create pcmanfm actions dir: {}", e))?;
-    let path = dir.join("hippoxos.desktop");
-    let content = format!(
-        "[Desktop Entry]\nType=Action\nName=Open With HippoxOS\nIcon=hippoxos\nProfiles=profile-zero;\n\n[X-Action-Profile profile-zero]\nName=Default profile\nExec=\"{}\" %f\nMimeTypes=all/allfiles;\n",
-        exe
-    );
-    std::fs::write(&path, content).map_err(|e| format!("write pcmanfm action: {}", e))?;
-    trace_log(&format!("pcmanfm action written: {:?}", path));
-    Ok(())
-}
-#[cfg(target_os = "linux")]
-fn write_thunar_action(exe: &str) -> Result<(), String> {
-    let dir = home_dir().join(".config/Thunar");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("create thunar config dir: {}", e))?;
-    let path = dir.join("uca.xml");
-    let existing = if path.exists() {
-        std::fs::read_to_string(&path).unwrap_or_default()
-    } else {
-        String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<actions>\n</actions>\n")
-    };
-    if existing.contains("hippoxos-thunar-action") {
-        trace_log("thunar action already present");
-        return Ok(());
-    }
-    let new_action = format!(
-        "  <action>\n    <icon>hippoxos</icon>\n    <name>Open With HippoxOS</name>\n    <unique-id>hippoxos-thunar-action</unique-id>\n    <command>\"{}\" %f</command>\n    <description>Open this file in HippoxOS</description>\n    <patterns>*</patterns>\n    <directories/>\n  </action>\n",
-        exe
-    );
-    let updated = if let Some(pos) = existing.rfind("</actions>") {
-        format!("{}{}{}", &existing[..pos], new_action, &existing[pos..])
-    } else {
-        format!("{}\n{}\n", existing, new_action)
-    };
-    std::fs::write(&path, updated).map_err(|e| format!("write thunar uca.xml: {}", e))?;
-    trace_log(&format!("thunar action written: {:?}", path));
-    Ok(())
-}
+// Not supported. Intentionally a no-op so callers do not need to guard the
+// call site with `#[cfg]`.
 #[cfg(target_os = "linux")]
 pub fn register_context_menu() -> Result<(), String> {
-    let exe = current_exe().ok_or("Cannot get current exe path")?;
-    let exe_str = exe.to_string_lossy().to_string();
-    if let Err(e) = write_nemo_action(&exe_str) {
-        trace_log(&format!("nemo action failed: {}", e));
-    }
-    if let Err(e) = write_pcmanfm_action(&exe_str) {
-        trace_log(&format!("pcmanfm action failed: {}", e));
-    }
-    if let Err(e) = write_thunar_action(&exe_str) {
-        trace_log(&format!("thunar action failed: {}", e));
-    }
-    trace_log(&format!("linux register done for exe={}", exe_str));
+    trace_log("linux register_context_menu: not supported, skipping");
     Ok(())
 }
 #[cfg(target_os = "linux")]
 pub fn unregister_context_menu() -> Result<(), String> {
-    let home = home_dir();
-    let _ = std::fs::remove_file(home.join(".local/share/nemo/actions/hippoxos.nemo_action"));
-    let _ = std::fs::remove_file(home.join(".local/share/file-manager/actions/hippoxos.desktop"));
-    let thunar_path = home.join(".config/Thunar/uca.xml");
-    if thunar_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&thunar_path) {
-            let mut output = String::new();
-            let mut skip = false;
-            for line in content.lines() {
-                if line.contains("<unique-id>hippoxos-thunar-action</unique-id>") {
-                    skip = true;
-                    if output.ends_with("<action>\n") || output.ends_with("<action>") {
-                        if let Some(pos) = output.rfind("<action>") {
-                            output.truncate(pos);
-                        }
-                    }
-                    continue;
-                }
-                if skip {
-                    if line.contains("</action>") {
-                        skip = false;
-                    }
-                    continue;
-                }
-                output.push_str(line);
-                output.push('\n');
-            }
-            let _ = std::fs::write(&thunar_path, output);
-        }
-    }
-    trace_log("linux unregister done");
+    trace_log("linux unregister_context_menu: not supported, skipping");
     Ok(())
 }
 // ==================== macOS ====================
+// Not supported. Intentionally a no-op so callers do not need to guard the
+// call site with `#[cfg]`.
 #[cfg(target_os = "macos")]
 pub fn register_context_menu() -> Result<(), String> {
-    todo!();
+    trace_log("macos register_context_menu: not supported, skipping");
     Ok(())
 }
 #[cfg(target_os = "macos")]
 pub fn unregister_context_menu() -> Result<(), String> {
-    todo!();
+    trace_log("macos unregister_context_menu: not supported, skipping");
+    Ok(())
+}
+// ==================== Fallback (other OSes) ====================
+// Keep the same public surface so `lib.rs` compiles unconditionally.
+#[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+pub fn register_context_menu() -> Result<(), String> {
+    Ok(())
+}
+#[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+pub fn unregister_context_menu() -> Result<(), String> {
     Ok(())
 }

@@ -82,7 +82,7 @@ const SandBox3DChatPanel: React.FC<SandBox3DChatPanelProps> = ({ onSendMessage, 
     () => ({
       id: "welcome",
       role: RoleEnum.LLM,
-      content: language === "zh" ? "🎨 欢迎来到 Hippox 3D 沙盒！我可以帮你创建 3D 场景、模型和动画。告诉我你想构建什么～" : "🎨 Welcome to Hippox 3D Sandbox! I can help you create 3D scenes, models, and animations. Tell me what you'd like to build～",
+      content: language === "zh" ? "🎨 欢迎来到 HippoxOS 3D 沙盒！我可以帮你创建 3D 场景、模型和动画。告诉我你想构建什么～" : "🎨 Welcome to HippoxOS 3D Sandbox! I can help you create 3D scenes, models, and animations. Tell me what you'd like to build～",
       timestamp: new Date().toISOString(),
     }),
     [language],

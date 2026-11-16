@@ -93,6 +93,8 @@ import {
   Webhook,
   HomeIcon,
   Music,
+  Clapperboard,
+  Briefcase,
 } from "lucide-react";
 interface IconProps {
   className?: string;
@@ -343,4 +345,6 @@ export const iconMap: Record<string, React.FC<IconProps>> = {
   apiClient: ApiClientIcon,
   home: HomeIcon,
   audioEditor: MusicNoteIcon,
+  storyCanvas: Clapperboard,
+  office: Briefcase,
 };

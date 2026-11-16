@@ -80,7 +80,7 @@ const MapsChatPage: React.FC<MapsChatPageProps> = ({ onSendMessage, onFileClick,
   const welcomeMsg: ChatMessage = {
     id: "welcome",
     role: RoleEnum.LLM,
-    content: language === "zh" ? "🌍 欢迎来到 Hippox 地图分析引擎！我可以帮你在地图上标注位置、绘制路线、分析地理数据。告诉我你想看什么～" : "🌍 Welcome to Hippox Map Analysis Engine! I can help you mark locations, draw routes, and analyze geographic data. Tell me what you'd like to see～",
+    content: language === "zh" ? "🌍 欢迎来到 HippoxOS 地图分析引擎！我可以帮你在地图上标注位置、绘制路线、分析地理数据。告诉我你想看什么～" : "🌍 Welcome to HippoxOS Map Analysis Engine! I can help you mark locations, draw routes, and analyze geographic data. Tell me what you'd like to see～",
     timestamp: new Date().toISOString(),
   };
   // Load session title from backend
