@@ -4,13 +4,14 @@ import { sessionCommands } from "../command/session/general";
 import { mapSessionCommands } from "../command/session/map";
 import { sandbox3dSessionCommands } from "../command/session/sandbox3d";
 import { videoSessionCommands } from "../command/session/videoeditor";
-// import blockchain session commands so task persistence works for the Blockchain domain
 import { blockchainSessionCommands } from "../command/session/blockchain";
 import { imageEditorSessionCommands } from "../command/session/imageeditor";
 import { pixelEditorSessionCommands } from "../command/session/pixeleditor";
 import { databaseClientSessionCommands } from "../command/session/databaseclient";
 import { dockerClientSessionCommands } from "../command/session/dockerclient";
 import { apiClientSessionCommands } from "../command/session/apiclient";
+import { storyCanvasSessionCommands } from "../command/session/storycanvas";
+import { officeSessionCommands } from "../command/session/office";
 import { ChatMessage, MessageStatus } from "../types/types";
 import { notificationManager, NotificationType } from "./NotificationManager";
 import { StepStatusEnum, TaskInfo, TaskStatusEnum, TaskStepInfo, SessionDomain } from "./types";
@@ -35,6 +36,8 @@ class TaskManager {
         if (sessionId.startsWith("databaseclient_session_")) return SessionDomain.DataBaseClient;
         if (sessionId.startsWith("dockerclient_session_")) return SessionDomain.DockerClient;
         if (sessionId.startsWith("apiclient_session_")) return SessionDomain.ApiClient;
+        if (sessionId.startsWith("storycanvas_session_")) return SessionDomain.StoryCanvas;
+        if (sessionId.startsWith("office_session_")) return SessionDomain.Office;
         return SessionDomain.General;
     }
     private getSessionKey(domain: SessionDomain, sessionId: string): string {
@@ -601,10 +604,6 @@ class TaskManager {
         const sessionData = this.assistantMessagesBySession.get(key);
         return sessionData?.has("welcome") || false;
     }
-    // TASK TIMEOUT CLEANUP
-    // Clean up tasks stuck in Pending or Running state for too long
-    // @param timeoutMinutes - Minutes after which a task is considered timed out (default: 5)
-    // @returns Number of tasks cleaned up
     cleanupTimeoutTasks(timeoutMinutes: number = 5): number {
         const domain = this.currentDomain;
         const now = new Date();
@@ -886,6 +885,10 @@ class TaskManager {
                 await dockerClientSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else if (domain === SessionDomain.ApiClient) {
                 await apiClientSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.StoryCanvas) {
+                await storyCanvasSessionCommands.saveTaskContent(sessionId, tasksArray);
+            } else if (domain === SessionDomain.Office) {
+                await officeSessionCommands.saveTaskContent(sessionId, tasksArray);
             } else {
                 await sessionCommands.saveTaskContent(sessionId, tasksArray);
             }
@@ -910,7 +913,6 @@ class TaskManager {
             } else if (domain === SessionDomain.SandBox3D) {
                 tasksContent = await sandbox3dSessionCommands.loadTaskContent(sessionId);
             } else if (domain === SessionDomain.Blockchain) {
-                // route Blockchain task loading through its own backend commands
                 tasksContent = await blockchainSessionCommands.loadTaskContent(sessionId);
             } else if (domain === SessionDomain.ImageEditor) {
                 tasksContent = await imageEditorSessionCommands.loadTaskContent(sessionId);
@@ -922,6 +924,10 @@ class TaskManager {
                 tasksContent = await dockerClientSessionCommands.loadTaskContent(sessionId);
             } else if (domain === SessionDomain.ApiClient) {
                 tasksContent = await apiClientSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.StoryCanvas) {
+                tasksContent = await storyCanvasSessionCommands.loadTaskContent(sessionId);
+            } else if (domain === SessionDomain.Office) {
+                tasksContent = await officeSessionCommands.loadTaskContent(sessionId);
             } else {
                 tasksContent = await sessionCommands.loadTaskContent(sessionId);
             }
