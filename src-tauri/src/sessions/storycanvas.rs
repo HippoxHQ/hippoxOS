@@ -1,7 +1,9 @@
 use crate::commands::add_session_to_profile;
 use crate::commands::get_settings_dir;
 use crate::commons::FileUtils;
+use crate::subsystem::StoryCanvasSessionMetadata;
 use crate::subsystem::get_storycanvas_dialog_history_dir;
+use crate::subsystem::get_storycanvas_session_metadata_path;
 use chrono::Local;
 use std::fs;
 fn get_config_path() -> std::path::PathBuf {
@@ -47,6 +49,15 @@ pub fn cmd_create_storycanvas_dialog_session(
     if !FileUtils::path_exists(&session_dir) {
         FileUtils::ensure_dir(&session_dir).map_err(|e| format!("Failed to create storycanvas session directory: {}", e))?;
     }
+    let metadata_path = get_storycanvas_session_metadata_path(session_id);
+    if let Some(parent) = metadata_path.parent() {
+        if !FileUtils::path_exists(parent) {
+            FileUtils::ensure_dir(parent).map_err(|e| format!("Failed to create storycanvas session workspace directory: {}", e))?;
+        }
+    }
+    let session_metadata = StoryCanvasSessionMetadata::new(session_id, title, description);
+    let metadata_content = serde_json::to_string_pretty(&session_metadata).map_err(|e| format!("Failed to serialize session metadata: {}", e))?;
+    FileUtils::write_file_string(&metadata_path, &metadata_content).map_err(|e| format!("Failed to save session metadata: {}", e))?;
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,

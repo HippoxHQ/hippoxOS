@@ -485,7 +485,8 @@ pub fn cmd_create_video_dialog_session(
     }
     // Save initial metadata (without files)
     session_metadata.update_timestamp();
-    let metadata_path = workspace_dir.join("metadata.json");
+    // let metadata_path = workspace_dir.join("metadata.json");
+    let metadata_path = crate::subsystem::videoeditor::get_session_metadata_path(session_id);
     debug!("cmd_create_video_dialog_session - Saving initial metadata to: {:?}", metadata_path);
     save_session_metadata(session_id, &session_metadata)?;
     // Asynchronous non-blocking file processing
