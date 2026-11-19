@@ -1154,6 +1154,39 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         // Story Canvas Metadata
         subsystem::cmd_storycanvas_get_viewport,
         subsystem::cmd_storycanvas_set_viewport,
+        subsystem::cmd_storycanvas_set_shot_position,
+        subsystem::cmd_storycanvas_set_episode_current_version,
+        subsystem::cmd_storycanvas_set_scene_current_version,
+        subsystem::cmd_storycanvas_set_shot_current_version,
+        // episode / scene / shot version history
+        subsystem::cmd_storycanvas_get_episode_version,
+        subsystem::cmd_storycanvas_get_episode_versions,
+        subsystem::cmd_storycanvas_remove_episode_version,
+        subsystem::cmd_storycanvas_update_episode_version,
+        subsystem::cmd_storycanvas_get_scene_version,
+        subsystem::cmd_storycanvas_get_scene_versions,
+        subsystem::cmd_storycanvas_remove_scene_version,
+        subsystem::cmd_storycanvas_update_scene_version,
+        subsystem::cmd_storycanvas_get_shot_version,
+        subsystem::cmd_storycanvas_get_shot_versions,
+        subsystem::cmd_storycanvas_remove_shot_version,
+        subsystem::cmd_storycanvas_update_shot_version,
+        // versioned updates (bump to a new version)
+        subsystem::cmd_storycanvas_update_episode,
+        subsystem::cmd_storycanvas_update_scene,
+        subsystem::cmd_storycanvas_update_shot,
+        // prompt of a specific historical version
+        subsystem::cmd_storycanvas_set_scene_prompt_version,
+        subsystem::cmd_storycanvas_set_shot_prompt_version,
+        // predecessor links on a specific shot version
+        subsystem::cmd_storycanvas_link_prev_shot_version,
+        subsystem::cmd_storycanvas_unlink_prev_shot_version,
+        // asset-to-shot links (many-to-many)
+        subsystem::cmd_storycanvas_link_asset_to_shot,
+        subsystem::cmd_storycanvas_unlink_asset_from_shot,
+        subsystem::cmd_storycanvas_set_scene_box_position,
+        subsystem::cmd_storycanvas_create_scene,
+        subsystem::cmd_storycanvas_create_shot,
         // =========== Registry Commands =============
         commands::cmd_take_pending_file_open
     ]

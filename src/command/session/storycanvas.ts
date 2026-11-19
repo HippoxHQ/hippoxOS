@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { TaskInfo } from '../../core/types';
 import { ChatMessage } from '../../types/types';
-
 /**
  * Session commands for the Story Canvas subsystem.
  */
@@ -121,5 +120,11 @@ export const storyCanvasSessionCommands = {
             return JSON.parse(content);
         }
         return null;
+    },
+    /**
+     * Get the on-disk directory of a Story Canvas session.
+     */
+    async getStoryCanvasSessionDir(sessionId: string): Promise<string> {
+        return await invoke('cmd_get_storycanvas_session_dir', { sessionId });
     },
 };

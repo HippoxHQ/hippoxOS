@@ -16,9 +16,7 @@ use crate::subsystem::NLEEditMode;
 use chrono::{Duration, Local};
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
-use std::fs;
 use std::path::Path;
-use uuid::Uuid;
 const DEFAULT_DURATION: f64 = 5.0;
 /// Get the path to the video session configuration file
 fn get_config_path() -> std::path::PathBuf {
@@ -50,9 +48,6 @@ fn save_pinned_sessions_to_config(pinned_sessions: &[String]) -> Result<(), Stri
     Ok(())
 }
 /// Background task to process a video file asynchronously.
-///
-/// Registers the material (which also submits the decode task) but does NOT
-/// add a track block automatically.
 async fn process_video_file_background(app_handle: tauri::AppHandle, session_id: &str, source_path: String) -> Result<(), String> {
     debug!("process_video_file_background - START: session_id={}, source_path={}", session_id, source_path);
     let sid = session_id.to_string();
@@ -70,8 +65,6 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
             None
         };
         debug!("process_video_file_background - download_content_id: {:?}", download_content_id);
-        // Insert the material into the session. register_material also
-        // submits the decode task, so decoding still runs.
         let upload_result = match register_material(&app, sid.clone(), path.clone(), download_content_id.clone(), None, None) {
             Ok(r) => {
                 debug!("process_video_file_background - Video material inserted successfully: id={}", r.id);
@@ -89,9 +82,6 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
             let _ = update_download_material_mapping(&task_id, &sid, &material_id);
             debug!("process_video_file_background - Updated download material mapping: task_id={}, material_id={}", task_id, material_id);
         }
-        // Do NOT add a track block: the material is registered and decoding
-        // starts, but it stays in the material panel until the user drops it
-        // onto the timeline manually.
         info!("process_video_file_background - Video processing completed (no track added): material_id={}", material_id);
         // Emit refresh event to notify frontend
         let _ = emit_refresh_timeline_and_player(&app, &sid);
@@ -115,9 +105,6 @@ async fn process_video_file_background(app_handle: tauri::AppHandle, session_id:
     }
 }
 /// Background task to process multiple audio files asynchronously.
-///
-/// Registers each material (which also submits the decode task) but does NOT
-/// add track blocks automatically.
 async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id: &str, audio_paths: Vec<String>) -> Result<(), String> {
     debug!("process_audio_files_background - START: session_id={}, count={}", session_id, audio_paths.len());
     let sid = session_id.to_string();
@@ -182,9 +169,6 @@ async fn process_audio_files_background(app_handle: tauri::AppHandle, session_id
     }
 }
 /// Background task to process multiple image files asynchronously.
-///
-/// Registers each material (which also submits the decode task) but does NOT
-/// add track blocks automatically.
 async fn process_image_files_background(app_handle: tauri::AppHandle, session_id: &str, image_paths: Vec<String>) -> Result<(), String> {
     debug!("process_image_files_background - START: session_id={}, count={}", session_id, image_paths.len());
     let sid = session_id.to_string();
@@ -249,9 +233,6 @@ async fn process_image_files_background(app_handle: tauri::AppHandle, session_id
     }
 }
 /// Background task to process multiple text files asynchronously.
-///
-/// Registers each material (which also submits the decode task) but does NOT
-/// add track blocks automatically.
 async fn process_text_files_background(app_handle: tauri::AppHandle, session_id: &str, text_paths: Vec<String>) -> Result<(), String> {
     debug!("process_text_files_background - START: session_id={}, count={}", session_id, text_paths.len());
     let sid = session_id.to_string();
@@ -313,8 +294,6 @@ async fn process_text_files_background(app_handle: tauri::AppHandle, session_id:
     }
 }
 // Synchronous processing functions (kept for backward compatibility).
-// Like the async versions above, they register materials (and trigger
-// decoding) but do NOT add track blocks.
 fn process_video_file(app_handle: tauri::AppHandle, session_id: &str, source_path: String, metadata: &mut SessionMetadata) {
     debug!("process_video_file - START: session_id={}, source_path={}", session_id, source_path);
     if source_path.is_empty() || !FileUtils::path_exists(Path::new(&source_path)) {

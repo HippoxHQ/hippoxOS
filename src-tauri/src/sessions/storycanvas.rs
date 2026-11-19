@@ -1,11 +1,10 @@
 use crate::commands::add_session_to_profile;
 use crate::commands::get_settings_dir;
 use crate::commons::FileUtils;
-use crate::subsystem::StoryCanvasSessionMetadata;
 use crate::subsystem::get_storycanvas_dialog_history_dir;
 use crate::subsystem::get_storycanvas_session_metadata_path;
+use crate::subsystem::StoryCanvasSessionMetadata;
 use chrono::Local;
-use std::fs;
 fn get_config_path() -> std::path::PathBuf {
     get_settings_dir().join("storycanvas_session.json")
 }
