@@ -15,6 +15,7 @@ dependencies = [
  "dashmap",
  "dirs 6.0.0",
  "encoding_rs",
+ "f_excel",
  "f_word",
  "fast_image_resize",
  "ffmpegx",
@@ -3264,6 +3265,15 @@ dependencies = [
  "autocfg",
  "indenter",
  "once_cell",
+]
+
+[[package]]
+name = "f_excel"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c56e0718651ff71a9a719c5a2001f7d447d44d51c25587e2ced5692bbe9007fb"
+dependencies = [
+ "zip 9.7.3",
 ]
 
 [[package]]
