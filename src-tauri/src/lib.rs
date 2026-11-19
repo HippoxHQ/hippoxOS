@@ -1,5 +1,6 @@
 #![allow(warnings)]
 #![windows_subsystem = "windows"]
+mod app;
 mod cmd_registry;
 mod commands;
 mod commons;
@@ -25,6 +26,7 @@ use crate::state::AppState;
 use crate::windows::TrayManager;
 use crate::windows::UpdateWindowManager;
 use crate::workspace::ensure_workspace_config;
+use app::*;
 use hippox::get_hippox_core_config;
 use memcontext::MemContext;
 use std::path::PathBuf;
@@ -125,6 +127,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .setup(|app| {
+            set_app_handle(app.handle().clone());
             #[cfg(target_os = "macos")]
             {
                 crate::subsystem::videoeditor::audio::init_audio_threads();

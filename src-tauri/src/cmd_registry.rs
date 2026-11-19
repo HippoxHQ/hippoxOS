@@ -1188,10 +1188,12 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_storycanvas_create_scene,
         subsystem::cmd_storycanvas_create_shot,
         // shot & assets task
-        subsystem::submit_shot_image,
-        subsystem::submit_shot_video,
-        subsystem::submit_assets_image,
-        subsystem::submit_assets_video,
+        subsystem::cmd_submit_shot_image,
+        subsystem::cmd_submit_shot_video,
+        subsystem::cmd_submit_assets_image,
+        subsystem::cmd_submit_assets_video,
+        subsystem::cmd_storycanvas_get_shot_image_path,
+        subsystem::cmd_storycanvas_get_shot_video_path,
         // =========== Registry Commands =============
         commands::cmd_take_pending_file_open
     ]
