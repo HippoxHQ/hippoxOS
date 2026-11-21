@@ -16,7 +16,10 @@ dependencies = [
  "dirs 6.0.0",
  "encoding_rs",
  "f_excel",
+ "f_md",
  "f_pdf",
+ "f_ppt",
+ "f_tex",
  "f_word",
  "fast_image_resize",
  "ffmpegx",
@@ -3274,8 +3277,14 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c56e0718651ff71a9a719c5a2001f7d447d44d51c25587e2ced5692bbe9007fb"
 dependencies = [
- "zip 9.7.3",
+ "zip 9.8.1",
 ]
+
+[[package]]
+name = "f_md"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "706b20ddd721fae3b6d23f953a461e97b571abed7552ea7b79a134d1736e25cb"
 
 [[package]]
 name = "f_pdf"
@@ -3288,12 +3297,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "f_ppt"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f156bf11c02d6088690d7afe57a2ef7132bfdb2e8f2738c2ef4f4ec498c9634"
+dependencies = [
+ "zip 9.8.1",
+]
+
+[[package]]
+name = "f_tex"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa83e1a538acf84dcca54f4030db37252e8e274ecd9c8cc41ac5c541107d6def"
+
+[[package]]
 name = "f_word"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c89c15b7affc467cd99302cd419dd8f54a50b48770760e8628480c0fbff71186"
 dependencies = [
- "zip 9.7.3",
+ "zip 9.8.1",
 ]
 
 [[package]]
@@ -13550,9 +13574,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.7.3"
+version = "9.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63e50f7b2212e4635244be3c363b53273d159f2523eb7db3096c1d2861c1b603"
+checksum = "a9534624d547e3f516ecde0ed9a70d37788f01d340efcfdd03bf3ea8e163c1d0"
 dependencies = [
  "aes 0.9.4",
  "bzip2 0.6.1",
