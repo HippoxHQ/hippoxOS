@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Image as ImageIcon, File, Plus, Search, X, Grid3x3, List, ArrowUp, ArrowDown, ChevronDown, Check, Pin, PinOff, Trash2 } from "lucide-react";
 import { ViewMode, SortOrder } from "../types";
-// import imageeditor_logo from "../../../../assets/imageeditor-logo-2.jpg";
+import office_logo from "../../../../assets/office-logo.png";
 interface TopBarProps {
   t: (key: string, params?: any) => string;
   viewMode: ViewMode;
@@ -75,10 +75,9 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
         <div
           style={{
-            width: "40px",
+            width: "83px",
             height: "40px",
             borderRadius: "10px",
-            background: "linear-gradient(135deg, var(--accent-color), #6366f1)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -86,16 +85,16 @@ export const TopBar: React.FC<TopBarProps> = ({
             flexShrink: 0,
           }}
         >
-          {/* <img
-            src={imageeditor_logo}
+          <img
+            src={office_logo}
             style={{
-              width: "40px",
+              width: "83px",
               height: "40px",
               borderRadius: "10px",
               flexShrink: 0,
               objectFit: "cover",
             }}
-          /> */}
+          />
         </div>
         <div style={{ flexShrink: 0 }}>
           <div
