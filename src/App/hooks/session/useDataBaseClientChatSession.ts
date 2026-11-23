@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { databaseClientSessionCommands } from "../../../command/session/databaseclient";
 import { getDataBaseClientSystemPrompt } from "../../../subsystem/DataBaseClient/llm/prompts";
+import { v4 } from "uuid";
 export function useDataBaseClientSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -110,7 +111,7 @@ export function useDataBaseClientSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `databaseclient_session_${Date.now()}`;
+            const newSessionId = `databaseclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -133,7 +134,7 @@ export function useDataBaseClientSession(
             window.dispatchEvent(new CustomEvent("databaseclient-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `databaseclient_session_${Date.now()}`;
+            const newSessionId = `databaseclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;

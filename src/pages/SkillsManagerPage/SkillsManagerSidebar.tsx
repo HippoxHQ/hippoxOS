@@ -6,6 +6,7 @@ import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
 // Import icons from lucide-react
 import { ChevronDown, Star, Play, Trash2, BarChart3 } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
+import { v4 } from "uuid";
 interface SkillsManagerSidebarProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -123,7 +124,7 @@ const SkillsManagerSidebar: React.FC<SkillsManagerSidebarProps> = ({ t, skills, 
       console.error("Skill not found locally:", skill.id);
       return;
     }
-    const sessionId = `session_${Date.now()}`;
+    const sessionId = `session_${v4()}`;
     const marketSkill = {
       id: found.id,
       name: found.name,

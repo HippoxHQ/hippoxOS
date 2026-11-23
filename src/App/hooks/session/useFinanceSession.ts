@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { chartSessionCommands } from "../../../command/session/finance";
 import { getFinanceSystemPrompt } from "../../../subsystem/Finance/llm/prompts";
+import { v4 } from "uuid";
 /**
  * Strip the [MARKET_DATA]...[/MARKET_DATA] block from a message.
  *
@@ -147,7 +148,7 @@ export function useFinanceSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `financial_analysis_session_${Date.now()}`;
+            const newSessionId = `financial_analysis_session_${v4()}_${Date.now()}`;
             const sessionTitle = displayContent.length > 30
                 ? displayContent.slice(0, 30) + "..."
                 : displayContent;
@@ -170,7 +171,7 @@ export function useFinanceSession(
             window.dispatchEvent(new CustomEvent("chart-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `financial_analysis_session_${Date.now()}`;
+            const newSessionId = `financial_analysis_session_${v4()}_${Date.now()}`;
             const sessionTitle = displayContent.length > 30
                 ? displayContent.slice(0, 30) + "..."
                 : displayContent;

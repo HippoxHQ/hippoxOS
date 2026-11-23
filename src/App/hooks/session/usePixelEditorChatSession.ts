@@ -13,6 +13,7 @@ import { buildPresetFromDecl, parsePreset, PixelPreset } from "../../../subsyste
 import { pixelEditorStateManager } from "../../../subsystem/PixelEditor/global";
 import { pixelEditorMetadataCommands } from "../../../command/PixelEditor/Metadata";
 import { extractPixelAnimation, validatePixelAnimationPreset } from "../../../subsystem/PixelEditor/llm/utils";
+import { v4 } from "uuid";
 /**
  * Detect the broad category of a file based on its extension.
  */
@@ -207,7 +208,7 @@ export function usePixelEditorSession(
             if (filePath && (fileType === "file" || fileType === "download")) {
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `pixeleditor_session_${Date.now()}`;
+                    const newSessionId = `pixeleditor_session_${v4()}_${Date.now()}`;
                     const fileName = await basename(filePath);
                     const title = fileName || "Pixel Project";
                     const fileTypeStr = getFileType(filePath);
@@ -252,8 +253,8 @@ export function usePixelEditorSession(
                 // Create an empty project
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `pixeleditor_session_${Date.now()}`;
-                    const title = "Empty Project";
+                    const newSessionId = `pixeleditor_session_${v4()}_${Date.now()}`;
+                    const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     await createPixelSessionWithPath(
                         newSessionId,
                         title,
@@ -297,7 +298,7 @@ export function usePixelEditorSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `pixeleditor_session_${Date.now()}`;
+            const newSessionId = `pixeleditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -338,7 +339,7 @@ export function usePixelEditorSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `pixeleditor_session_${Date.now()}`;
+            const newSessionId = `pixeleditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -509,7 +510,7 @@ export function usePixelEditorSession(
         filePath: string,
         fileTitle: string
     ) => {
-        const newSessionId = `pixeleditor_session_${Date.now()}`;
+        const newSessionId = `pixeleditor_session_${v4()}_${Date.now()}`;
         const title = fileTitle || "Pixel Session";
         const fileTypeStr = getFileType(filePath);
         let imageSourcePath: string | undefined = undefined;

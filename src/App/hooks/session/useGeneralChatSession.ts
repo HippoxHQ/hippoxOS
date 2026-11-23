@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { sessionCommands } from "../../../command/session/general";
 import { getGeneralChatSystemPrompt } from "../../../subsystem/GeneralChat/llm/prompts";
+import { v4 } from "uuid";
 /**
 * Custom hook that manages the current session state and all session-related operations.
 * 
@@ -159,7 +160,7 @@ export function useSession(
         let finalSessionId = sessionId || currentSessionId;
         // Case 1: Pending session → convert to real session
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `session_${Date.now()}`;
+            const newSessionId = `session_${v4()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -192,7 +193,7 @@ export function useSession(
         }
         // Case 2: No session → create brand new session
         else if (!finalSessionId) {
-            const newSessionId = `session_${Date.now()}`;
+            const newSessionId = `session_${v4()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;

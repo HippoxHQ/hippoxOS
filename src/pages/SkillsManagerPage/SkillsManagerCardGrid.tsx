@@ -6,6 +6,7 @@ import { runSkill } from "../../components/MenuPanel/utils/skillRunner";
 // Import icons from lucide-react
 import { Star, Play, Trash2, Search, Plus, Package, X } from "lucide-react";
 import { showDialog, DialogType } from "../../components/Dialog";
+import { v4 } from "uuid";
 interface SkillsManagerCardGridProps {
   t: (key: string, params?: any) => string;
   skills: SkillData[];
@@ -98,7 +99,7 @@ const SkillsManagerCardGrid: React.FC<SkillsManagerCardGridProps> = ({ t, skills
       console.error("Skill not found locally:", skill.id);
       return;
     }
-    const sessionId = `session_${Date.now()}`;
+    const sessionId = `session_${v4()}`;
     const marketSkill = {
       id: found.id,
       name: found.name,

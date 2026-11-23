@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { getApiClientSystemPrompt } from "../../../subsystem/ApiClient/llm/prompts";
 import { apiClientSessionCommands } from "../../../command/session/apiclient";
+import { v4 } from "uuid";
 export function useApiClientSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -110,7 +111,7 @@ export function useApiClientSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `apiclient_session_${Date.now()}`;
+            const newSessionId = `apiclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -133,7 +134,7 @@ export function useApiClientSession(
             window.dispatchEvent(new CustomEvent("apiclient-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `apiclient_session_${Date.now()}`;
+            const newSessionId = `apiclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;

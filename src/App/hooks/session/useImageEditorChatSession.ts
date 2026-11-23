@@ -9,6 +9,7 @@ import { imageEditorSessionCommands } from "../../../command/session/imageeditor
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getImageEditorSystemPrompt } from "../../../subsystem/ImageEditor/llm/prompts";
+import { v4 } from "uuid";
 /**
  * Detect the broad category of a file based on its extension.
  * Image editor only handles image / text sources.
@@ -175,7 +176,7 @@ export function useImageEditorSession(
             if (filePath && (fileType === "file" || fileType === "download")) {
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `imageeditor_session_${Date.now()}`;
+                    const newSessionId = `imageeditor_session_${v4()}_${Date.now()}`;
                     const fileName = await basename(filePath);
                     const title = fileName || "Image Project";
                     // Detect file type and assign to the appropriate source array.
@@ -222,8 +223,8 @@ export function useImageEditorSession(
                 // Create an empty project
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `imageeditor_session_${Date.now()}`;
-                    const title = "Empty Project";
+                    const newSessionId = `imageeditor_session_${v4()}_${Date.now()}`;
+                    const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     await createImageSessionWithPath(
                         newSessionId,
                         title,
@@ -267,7 +268,7 @@ export function useImageEditorSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `imageeditor_session_${Date.now()}`;
+            const newSessionId = `imageeditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -308,7 +309,7 @@ export function useImageEditorSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `imageeditor_session_${Date.now()}`;
+            const newSessionId = `imageeditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -480,7 +481,7 @@ export function useImageEditorSession(
         filePath: string,
         fileTitle: string
     ) => {
-        const newSessionId = `imageeditor_session_${Date.now()}`;
+        const newSessionId = `imageeditor_session_${v4()}_${Date.now()}`;
         const title = fileTitle || "Image Session";
         const fileTypeStr = getFileType(filePath);
         let imageSourcePath: string | undefined = undefined;

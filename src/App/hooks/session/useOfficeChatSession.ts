@@ -9,6 +9,7 @@ import { officeSessionCommands } from "../../../command/session/office";
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getOfficeSystemPrompt } from "../../../subsystem/Office/llm/prompts";
+import { v4 } from "uuid";
 /**
  * Detect the broad category of a file based on its extension.
  */
@@ -154,7 +155,7 @@ export function useOfficeChatSession(
             if (filePath && (fileType === "file" || fileType === "download")) {
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `office_session_${Date.now()}`;
+                    const newSessionId = `office_session_${v4()}_${Date.now()}`;
                     const fileName = await basename(filePath);
                     const title = fileName || "Office Project";
                     // Detect file type and assign to the appropriate source array.
@@ -201,8 +202,8 @@ export function useOfficeChatSession(
                 // Create an empty project
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `office_session_${Date.now()}`;
-                    const title = "Empty Project";
+                    const newSessionId = `office_session_${v4()}_${Date.now()}`;
+                    const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     await createOfficeSessionWithPath(
                         newSessionId,
                         title,
@@ -246,7 +247,7 @@ export function useOfficeChatSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `office_session_${Date.now()}`;
+            const newSessionId = `office_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -287,7 +288,7 @@ export function useOfficeChatSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `office_session_${Date.now()}`;
+            const newSessionId = `office_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -458,7 +459,7 @@ export function useOfficeChatSession(
         filePath: string,
         fileTitle: string
     ) => {
-        const newSessionId = `office_session_${Date.now()}`;
+        const newSessionId = `office_session_${v4()}_${Date.now()}`;
         const title = fileTitle || "Office Session";
         const fileTypeStr = getFileType(filePath);
         let imageSourcePath: string | undefined = undefined;

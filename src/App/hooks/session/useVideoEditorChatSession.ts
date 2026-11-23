@@ -10,6 +10,7 @@ import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getVideoEditorSystemPrompt } from "../../../subsystem/VideoEditor/llm/prompts";
 import { NLEEditMode } from "../../../subsystem/VideoEditor/types";
+import { v4 } from "uuid";
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
@@ -153,7 +154,7 @@ export function useVideoSession(
             if (filePath && (fileType === "file" || fileType === "download")) {
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `video_session_${Date.now()}`;
+                    const newSessionId = `video_session_${v4()}_${Date.now()}`;
                     const fileName = await basename(filePath);
                     const title = fileName || "Video Project";
                     // Detect file type and assign to the appropriate material array
@@ -208,8 +209,8 @@ export function useVideoSession(
                 // Create an empty project
                 setIsCreatingSession(true);
                 try {
-                    const newSessionId = `video_session_${Date.now()}`;
-                    const title = "Empty Project";
+                    const newSessionId = `video_session_${v4()}_${Date.now()}`;
+                    const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     await createVideoSessionWithPath(
                         newSessionId,
                         title,
@@ -255,7 +256,7 @@ export function useVideoSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `video_session_${Date.now()}`;
+            const newSessionId = `video_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -304,7 +305,7 @@ export function useVideoSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `video_session_${Date.now()}`;
+            const newSessionId = `video_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -487,7 +488,7 @@ export function useVideoSession(
         filePath: string,
         fileTitle: string
     ) => {
-        const newSessionId = `video_session_${Date.now()}`;
+        const newSessionId = `video_session_${v4()}_${Date.now()}`;
         const title = fileTitle || "Video Session";
         const fileTypeStr = getFileType(filePath);
         let videoSourcePath: string | undefined = undefined;

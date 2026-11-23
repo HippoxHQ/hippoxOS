@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { dockerClientSessionCommands } from "../../../command/session/dockerclient";
 import { getDockerClientSystemPrompt } from "../../../subsystem/DockerClient/llm/prompts";
+import { v4 } from "uuid";
 export function useDockerClientSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -110,7 +111,7 @@ export function useDockerClientSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `dockerclient_session_${Date.now()}`;
+            const newSessionId = `dockerclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -133,7 +134,7 @@ export function useDockerClientSession(
             window.dispatchEvent(new CustomEvent("dockerclient-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `dockerclient_session_${Date.now()}`;
+            const newSessionId = `dockerclient_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;

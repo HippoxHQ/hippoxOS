@@ -8,6 +8,7 @@ import { workspaceCommands } from "../../../command/workspace";
 import { codeEditorSessionCommands } from "../../../command/session/codeeditor";
 import { codeEditorCommands } from "../../../command/CodeEditor";
 import { getCodeEditorSystemPrompt } from "../../../subsystem/CodeEditor/llm/prompts";
+import { v4 } from "uuid";
 export function useCodeEditorSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -118,7 +119,7 @@ export function useCodeEditorSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `codeeditor_session_${Date.now()}`;
+            const newSessionId = `codeeditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -150,7 +151,7 @@ export function useCodeEditorSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `codeeditor_session_${Date.now()}`;
+            const newSessionId = `codeeditor_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -344,7 +345,7 @@ export function useCodeEditorSession(
         workspacePath: string,
         workspaceType: "directory" | "file"
     ) => {
-        const newSessionId = `codeeditor_session_${Date.now()}`;
+        const newSessionId = `codeeditor_session_${v4()}_${Date.now()}`;
         const pathParts = workspacePath.split(/[\\/]/);
         const title = pathParts[pathParts.length - 1] || "Code Editor";
         await codeEditorCommands.ensureTmpDir(workspacePath);

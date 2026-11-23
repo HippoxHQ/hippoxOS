@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { blockchainSessionCommands } from "../../../command/session/blockchain";
 import { getBlockchainSystemPrompt } from "../../../subsystem/Blockchain/llm/prompts";
+import { v4 } from "uuid";
 export function useBlockchainSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -110,7 +111,7 @@ export function useBlockchainSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `blockchain_session_${Date.now()}`;
+            const newSessionId = `blockchain_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -133,7 +134,7 @@ export function useBlockchainSession(
             window.dispatchEvent(new CustomEvent("blockchain-session-created"));
             setPendingNewSession(false);
         } else if (!finalSessionId) {
-            const newSessionId = `blockchain_session_${Date.now()}`;
+            const newSessionId = `blockchain_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;

@@ -62,11 +62,7 @@ export const useSessionManagement = ({ t, sortOrder }: UseSessionManagementProps
         if (a.is_pinned !== b.is_pinned) {
           return a.is_pinned ? -1 : 1;
         }
-        const getTimestamp = (id: string) => {
-          // FIX: Use office_session_ prefix.
-          const ts = id.replace("office_session_", "");
-          return parseInt(ts, 10) || 0;
-        };
+        const getTimestamp = (id: string) => parseInt(id.split('_').pop() || '0', 10) || 0;
         const aTime = getTimestamp(a.session_id);
         const bTime = getTimestamp(b.session_id);
         return sortOrder === "desc" ? bTime - aTime : aTime - bTime;

@@ -7,6 +7,7 @@ import { Language, ChatMessage, RoleEnum, MessageStatus } from "../../../types/t
 import { workspaceCommands } from "../../../command/workspace";
 import { sandbox3dSessionCommands } from "../../../command/session/sandbox3d";
 import { getSandBox3DSystemPrompt } from "../../../subsystem/SandBox3D/llm/prompts";
+import { v4 } from "uuid";
 export function useSandBox3DSession(
     language: Language,
     isConfigLoaded: boolean,
@@ -112,7 +113,7 @@ export function useSandBox3DSession(
             return;
         }
         if (finalSessionId && finalSessionId.startsWith("pending_")) {
-            const newSessionId = `sandbox3d_session_${Date.now()}`;
+            const newSessionId = `sandbox3d_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -144,7 +145,7 @@ export function useSandBox3DSession(
                 }));
             }
         } else if (!finalSessionId) {
-            const newSessionId = `sandbox3d_session_${Date.now()}`;
+            const newSessionId = `sandbox3d_session_${v4()}_${Date.now()}`;
             const sessionTitle = userMessage.length > 30
                 ? userMessage.slice(0, 30) + "..."
                 : userMessage;
@@ -317,7 +318,7 @@ export function useSandBox3DSession(
         scenePath: string,
         sceneName: string
     ) => {
-        const newSessionId = `sandbox3d_session_${Date.now()}`;
+        const newSessionId = `sandbox3d_session_${v4()}_${Date.now()}`;
         const title = sceneName || "3D Scene";
         await sandbox3dSessionCommands.createSandBox3DSession(
             newSessionId,
