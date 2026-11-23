@@ -94,6 +94,7 @@ f_pdf = "0.1.0"
 f_ppt = "0.1.1"
 f_md = "0.1.0"
 f_tex = "0.1.0"
+f_aicv = "0.1.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 winreg = "0.55"
 windows-capture = "2.0.1"

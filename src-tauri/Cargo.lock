@@ -15,6 +15,7 @@ dependencies = [
  "dashmap",
  "dirs 6.0.0",
  "encoding_rs",
+ "f_aicv",
  "f_excel",
  "f_md",
  "f_pdf",
@@ -3272,12 +3273,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "f_aicv"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ce3dafd347b1053fc976b697e558c42046faa1a808c3f7cbcb3debd3c12eb08"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "zip 9.8.2",
+]
+
+[[package]]
 name = "f_excel"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c56e0718651ff71a9a719c5a2001f7d447d44d51c25587e2ced5692bbe9007fb"
 dependencies = [
- "zip 9.8.1",
+ "zip 9.8.2",
 ]
 
 [[package]]
@@ -3302,7 +3315,7 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f156bf11c02d6088690d7afe57a2ef7132bfdb2e8f2738c2ef4f4ec498c9634"
 dependencies = [
- "zip 9.8.1",
+ "zip 9.8.2",
 ]
 
 [[package]]
@@ -3317,7 +3330,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c89c15b7affc467cd99302cd419dd8f54a50b48770760e8628480c0fbff71186"
 dependencies = [
- "zip 9.8.1",
+ "zip 9.8.2",
 ]
 
 [[package]]
@@ -13574,9 +13587,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.8.1"
+version = "9.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9534624d547e3f516ecde0ed9a70d37788f01d340efcfdd03bf3ea8e163c1d0"
+checksum = "2d8dbe089cf6b0448b78f5fc50139ab5aaa40d08ac07cdc1baf2c13add35fcce"
 dependencies = [
  "aes 0.9.4",
  "bzip2 0.6.1",
