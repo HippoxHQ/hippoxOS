@@ -31,7 +31,7 @@ import CodeEditorPage from "../../subsystem/CodeEditor";
 import GeneralChatPage from "../../subsystem/GeneralChat";
 import MapsPage from "../../subsystem/Maps";
 import SandBox3DPage from "../../subsystem/SandBox3D";
-import VideoEditorPage from "../../subsystem/VideoEditor";
+import VideoEditorPage from "../../subsystem/nle";
 import FinancePage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
 import ImageEditorPage from "../../subsystem/ImageEditor";

@@ -4,11 +4,11 @@ use crate::commands::get_video_editing_system_dialog_history_dir;
 use crate::commons::FileUtils;
 use crate::subsystem::get_session_thumbnail_path;
 use crate::subsystem::load_material_metadata;
-use crate::subsystem::videoeditor::get_downloads_root_dir;
-use crate::subsystem::videoeditor::material::{register_material, UploadResult};
-use crate::subsystem::videoeditor::track::calculate_max_track_time;
-use crate::subsystem::videoeditor::track::table::TrackTable;
-use crate::subsystem::videoeditor::{
+use crate::subsystem::nle::get_downloads_root_dir;
+use crate::subsystem::nle::material::{register_material, UploadResult};
+use crate::subsystem::nle::track::calculate_max_track_time;
+use crate::subsystem::nle::track::table::TrackTable;
+use crate::subsystem::nle::{
     emit_refresh_timeline_and_player, load_session_config, load_session_metadata, save_session_config, save_session_metadata, save_session_tracks,
     update_download_material_mapping, update_session_track_stack, MaterialType, SessionMetadata, TrackTableMap,
 };
@@ -465,7 +465,7 @@ pub fn cmd_create_video_dialog_session(
     // Save initial metadata (without files)
     session_metadata.update_timestamp();
     // let metadata_path = workspace_dir.join("metadata.json");
-    let metadata_path = crate::subsystem::videoeditor::get_session_metadata_path(session_id);
+    let metadata_path = crate::subsystem::nle::get_session_metadata_path(session_id);
     debug!("cmd_create_video_dialog_session - Saving initial metadata to: {:?}", metadata_path);
     save_session_metadata(session_id, &session_metadata)?;
     // Asynchronous non-blocking file processing
@@ -771,19 +771,19 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
 #[tauri::command]
 pub async fn cmd_delete_video_dialog_session(app_handle: tauri::AppHandle, session_id: &str) -> Result<(), String> {
     debug!("cmd_delete_video_dialog_session - START: session_id={}", session_id);
-    if let Ok(materials) = crate::subsystem::videoeditor::list_all_materials(session_id) {
+    if let Ok(materials) = crate::subsystem::nle::list_all_materials(session_id) {
         for m in materials.iter() {
             let mid = m.id.as_str();
-            crate::subsystem::videoeditor::mark_decode_cancelled(mid);
-            crate::subsystem::videoeditor::mark_material_deleted(mid);
-            let removed = crate::subsystem::videoeditor::DECODE_POOL.cancel_by_material(mid);
+            crate::subsystem::nle::mark_decode_cancelled(mid);
+            crate::subsystem::nle::mark_material_deleted(mid);
+            let removed = crate::subsystem::nle::DECODE_POOL.cancel_by_material(mid);
             // Same wait/kill/wait sequence as cmd_cancel_decode_task.
-            let mut stopped = crate::subsystem::videoeditor::wait_for_material_fully_stopped(mid, 5_000);
+            let mut stopped = crate::subsystem::nle::wait_for_material_fully_stopped(mid, 5_000);
             if !stopped {
                 crate::subsystem::kill_ffmpeg_processes();
-                stopped = crate::subsystem::videoeditor::wait_for_material_fully_stopped(mid, 5_000);
+                stopped = crate::subsystem::nle::wait_for_material_fully_stopped(mid, 5_000);
             }
-            crate::subsystem::videoeditor::purge_material_in_memory(mid);
+            crate::subsystem::nle::purge_material_in_memory(mid);
         }
         // Give the OS time to release handles before deleting the session dir.
         crate::subsystem::kill_ffmpeg_processes();
@@ -827,7 +827,7 @@ pub async fn cmd_delete_video_dialog_session(app_handle: tauri::AppHandle, sessi
         debug!("cmd_delete_video_dialog_session - Removing from pinned sessions");
         let _ = cmd_update_pinned_video_sessions(session_id.to_string(), false);
     }
-    let _ = crate::subsystem::videoeditor::emit_refresh_materials(&app_handle, session_id, None);
+    let _ = crate::subsystem::nle::emit_refresh_materials(&app_handle, session_id, None);
     debug!("cmd_delete_video_dialog_session - DONE");
     Ok(())
 }

@@ -1,7 +1,7 @@
 use crate::commands::FileOperationResult;
 use crate::commons::FileUtils;
 use crate::subsystem::sandbox3d::get_sandbox3d_gif_path;
-use crate::subsystem::videoeditor::{register_overlay, OverlayType};
+use crate::subsystem::nle::{register_overlay, OverlayType};
 use chrono::Utc;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use regex::Regex;

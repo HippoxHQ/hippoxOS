@@ -5,8 +5,8 @@ import { configCommands } from "../command/config";
 import { zh, en } from "../i18n";
 import CommonDropdown from "../components/CommonDropdown";
 import { NumberInput } from "../components/NumberInput";
-import { videoEditorStateManager } from "../subsystem/VideoEditor/global";
-import { WINDOW_EVENTS } from "../subsystem/VideoEditor/WindowEventManager";
+import { videoEditorStateManager } from "../subsystem/nle/global";
+import { WINDOW_EVENTS } from "../subsystem/nle/WindowEventManager";
 /**
  * A rectangular capture region expressed in CSS pixels relative to the top‑left corner of the overlay.
  */

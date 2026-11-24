@@ -22,8 +22,8 @@ import { useTheme } from "./hooks/useTheme";
 import { useMenuPanel, ContentPanelView } from "./hooks/useMenuPanel";
 import { APP_WINDOW_EVENTS, dispatchOpenSubsystem, getSubsystemEventInfo } from "./AppWindowEventManager";
 import "../core/TaskPool";
-import { videoEditorStateManager } from "../subsystem/VideoEditor/global";
-import { clearVideoEditorAllMemory } from "../subsystem/VideoEditor/MenoryManager";
+import { videoEditorStateManager } from "../subsystem/nle/global";
+import { clearVideoEditorAllMemory } from "../subsystem/nle/MenoryManager";
 import { listen } from "@tauri-apps/api/event";
 // Video file extensions supported by the shell context menu.
 const VIDEO_EXTS = ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv"];

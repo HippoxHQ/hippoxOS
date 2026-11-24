@@ -8,7 +8,7 @@ import logo from "../../assets/logo.png";
 import AudioVisualizer from "./AudioVisualizer";
 import { Material } from "./types";
 import { configCommands } from "../../command/config";
-import { materialsCommands } from "../../command/VideoEditor/Materials";
+import { materialsCommands } from "../../command/nle/Materials";
 import { windowsCommands } from "../../command/windows";
 import { osCommands } from "../../command/os";
 import { zh, en } from "../../i18n";

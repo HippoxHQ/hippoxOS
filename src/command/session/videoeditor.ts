@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { TaskInfo } from '../../core/types';
 import { ChatMessage } from '../../types/types';
-import { TrackRowInfo } from '../VideoEditor/types';
-import { NLEEditMode } from '../../subsystem/VideoEditor/types';
+import { TrackRowInfo } from '../nle/types';
+import { NLEEditMode } from '../../subsystem/nle/types';
 export interface TrackInfo {
     track_type: "video" | "audio" | "image" | "text";
     // Video fields

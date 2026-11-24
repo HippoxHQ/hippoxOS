@@ -8,8 +8,8 @@ import { workspaceCommands } from "../../../command/workspace";
 import { videoSessionCommands, } from "../../../command/session/videoeditor";
 import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
-import { getVideoEditorSystemPrompt } from "../../../subsystem/VideoEditor/llm/prompts";
-import { NLEEditMode } from "../../../subsystem/VideoEditor/types";
+import { getVideoEditorSystemPrompt } from "../../../subsystem/nle/llm/prompts";
+import { NLEEditMode } from "../../../subsystem/nle/types";
 import { v4 } from "uuid";
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";

@@ -130,7 +130,7 @@ pub fn run() {
             set_app_handle(app.handle().clone());
             #[cfg(target_os = "macos")]
             {
-                crate::subsystem::videoeditor::audio::init_audio_threads();
+                crate::subsystem::nle::audio::init_audio_threads();
                 nokhwa::nokhwa_initialize(|granted| {
                     if granted {
                         log::info!("macOS camera permission granted");

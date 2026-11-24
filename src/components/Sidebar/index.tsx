@@ -4,12 +4,12 @@ import { SidebarProps } from "./types";
 import { topMenuItems, bottomMenuItems, allMenuItems } from "./constants";
 import { sidebarStyles } from "./sidebarStyles";
 import { usePopupMenu } from "./hooks/usePopupMenu";
-import { videoEditorStateManager } from "../../subsystem/VideoEditor/global";
-import { clearVideoEditorAllMemory } from "../../subsystem/VideoEditor/MenoryManager";
 import { APP_WINDOW_EVENTS } from "../../App/AppWindowEventManager";
 import { SUBSYSTEM_TO_SIDEBAR_ID } from "../../App/SubSystemConstants";
 import { windowsCommands } from "../../command/windows";
 import { ChevronUp, ChevronDown, ExternalLink, ArrowRight } from "lucide-react";
+import { clearVideoEditorAllMemory } from "../../subsystem/nle/MenoryManager";
+import { videoEditorStateManager } from "../../subsystem/nle/global";
 if (typeof document !== "undefined") {
   const styleId = "sidebar-styles";
   if (!document.getElementById(styleId)) {

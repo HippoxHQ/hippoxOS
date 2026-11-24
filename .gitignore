@@ -34,9 +34,9 @@ src-tauri/bin/*-unknown-linux-gnu
 src/test/video/*
 
 # nle module
-src/command/VideoEditor/
-src/subsystem/VideoEditor/
-src-tauri/src/subsystem/videoeditor/
+src/command/nle/
+src/subsystem/nle/
+src-tauri/src/subsystem/nle/
 
 # image editor module
 src/command/ImageEditor/
