@@ -10,6 +10,7 @@ import { basename } from "@tauri-apps/api/path";
 import { showToast, ToastType } from "../../../components/Toast";
 import { getStoryCanvasSystemPrompt } from "../../../subsystem/StoryCanvas/llm/prompts";
 import { v4 } from "uuid";
+import { storyCanvasStateManager } from "../../../subsystem/StoryCanvas/global";
 /**
  * Detect the broad category of a file based on its extension.
  */
@@ -354,6 +355,10 @@ export function useStoryCanvasChatSession(
                 status: MessageStatus.Pending,
             };
             taskManager.addAssistantMessageToSession(finalSessionId, assistantMsg, SessionDomain.StoryCanvas);
+            // Capture the active episode ID at task creation time to ensure
+            // the LLM response updates the correct episode even if the user
+            // switches episodes while the task is running.
+            const lockedEpisodeId = storyCanvasStateManager.getCurrentEpisodeId();
             const newTask: TaskInfo = {
                 task_id: taskId,
                 session_id: finalSessionId,
@@ -365,6 +370,7 @@ export function useStoryCanvasChatSession(
                 updated_at: now.toISOString(),
                 files: files,
                 workflow_mode: mode,
+                ext: lockedEpisodeId ? { lockedEpisodeId } : undefined,
             };
             taskManager.addTaskToSession(finalSessionId, newTask, SessionDomain.StoryCanvas);
         } catch (error) {

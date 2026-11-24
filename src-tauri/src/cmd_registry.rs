@@ -1208,6 +1208,9 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_storycanvas_extract_shot_video_last_frame,
         subsystem::cmd_storycanvas_get_shot_video_first_frame_path,
         subsystem::cmd_storycanvas_get_shot_video_last_frame_path,
+        subsystem::cmd_storycanvas_get_last_episode_number,
+        subsystem::cmd_storycanvas_export_session,
+        subsystem::cmd_storycanvas_import_session,
         // =========== Registry Commands =============
         commands::cmd_take_pending_file_open
     ]

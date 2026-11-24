@@ -62,6 +62,11 @@ export interface TaskInfo {
     * Used to prevent duplicate execution of the same task.
     */
     executed?: boolean;
+    /**
+    * Extension fields for subsystem-specific data storage.
+    * Allows subsystems to attach custom metadata without modifying core structure.
+    */
+    ext?: Record<string, any>;
 }
 /**
 * Task step information - represents a single execution step within a task

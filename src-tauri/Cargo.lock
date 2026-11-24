@@ -3274,9 +3274,9 @@ dependencies = [
 
 [[package]]
 name = "f_aicv"
-version = "0.1.0"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce3dafd347b1053fc976b697e558c42046faa1a808c3f7cbcb3debd3c12eb08"
+checksum = "f5b8f870f42a9e3174349691dbe74ff7f12805d7aff0db748018cf42dad062e5"
 dependencies = [
  "chrono",
  "serde",
