@@ -31,7 +31,6 @@ import CodeEditorPage from "../../subsystem/CodeEditor";
 import GeneralChatPage from "../../subsystem/GeneralChat";
 import MapsPage from "../../subsystem/Maps";
 import SandBox3DPage from "../../subsystem/SandBox3D";
-import VideoEditorPage from "../../subsystem/nle";
 import FinancePage from "../../subsystem/Finance";
 import BlockchainPage from "../../subsystem/Blockchain";
 import ImageEditorPage from "../../subsystem/ImageEditor";
@@ -40,9 +39,10 @@ import DataBaseClientPage from "../../subsystem/DataBaseClient";
 import DockerClientPage from "../../subsystem/DockerClient";
 import ApiClientPage from "../../subsystem/ApiClient";
 import { MENU_PANEL_WIDTH } from "../constants";
-import { getSubsystemEventInfo, onOpenSubsystem } from "../AppWindowEventManager";
+import { getSubsystemEventInfo, onNleImportAicv, onOpenSubsystem } from "../AppWindowEventManager";
 import StoryCanvasPage from "../../subsystem/StoryCanvas";
 import OfficePage from "../../subsystem/Office";
+import NLESystem from "../../subsystem/nle";
 declare global {
   interface Window {
     __pageResources: {
@@ -556,6 +556,8 @@ export function AppContent({
   // Pending file path requested via the OPEN_SUBSYSTEM event (shell context menu).
   // Only consumed by subsystem pages that accept `initFilePath`.
   const [pendingFile, setPendingFile] = useState<{ subsystem: string; filePath: string } | null>(null);
+  // AICV file path passed to the NLE subsystem via the NLE_IMPORT_AICV event.
+  const [aicvFilePath, setAicvFilePath] = useState<string | null>(null);
   // Refs for page switching and resize
   const prevContentPanelRef = useRef<ContentPanelView | null>(null);
   const isFirstRenderRef = useRef<boolean>(true);
@@ -588,6 +590,17 @@ export function AppContent({
       if (sessionId) {
         setPendingSession({ subsystem: normalizedSubsystem, sessionId });
       }
+    });
+    return cleanup;
+  }, [onMenuClick]);
+  /**
+   * Listen for the NLE_IMPORT_AICV event and switch to NLE subsystem with aicv file path.
+   */
+  useEffect(() => {
+    const cleanup = onNleImportAicv(({ filePath }) => {
+      if (!filePath) return;
+      setAicvFilePath(filePath);
+      onMenuClick("videoEditor");
     });
     return cleanup;
   }, [onMenuClick]);
@@ -792,6 +805,14 @@ export function AppContent({
   useEffect(() => {
     if (isFunctionPanelMaximized) {
       setIsFunctionPanelMaximized(false);
+    }
+  }, [currentContentPanel]);
+  /**
+   * Clear the aicv file path once the active panel no longer matches the video editor.
+   */
+  useEffect(() => {
+    if (currentContentPanel !== "videoEditor") {
+      setAicvFilePath(null);
     }
   }, [currentContentPanel]);
   /**
@@ -1017,12 +1038,12 @@ export function AppContent({
     } else if (isVideoEditor) {
       contentElement = renderSubsystemPage(
         PAGE_TYPES.VIDEO_EDITOR,
-        <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} initFilePath={getPendingFilePath("video", "videoediting")} nleEditMode="video" />,
+        <NLESystem t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("video", "videoediting")} initFilePath={getPendingFilePath("video", "videoediting")} nleEditMode="video" aicvFilePath={aicvFilePath} />,
       );
     } else if (isAudioEditor) {
       contentElement = renderSubsystemPage(
         PAGE_TYPES.AUDIO_EDITOR,
-        <VideoEditorPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("audioEditor", "audioediting")} initFilePath={getPendingFilePath("audioEditor", "audioediting")} nleEditMode="audio" />,
+        <NLESystem t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("audioEditor", "audioediting")} initFilePath={getPendingFilePath("audioEditor", "audioediting")} nleEditMode="audio" />,
       );
     } else if (isSandbox3d) {
       contentElement = renderSubsystemPage(PAGE_TYPES.SANDBOX_3D, <SandBox3DPage t={t} theme={theme === "dark" ? "dark" : "light"} i18n={language === "zh" ? "zh-cn" : "en"} initSessionId={getPendingSessionId("sandbox3d")} />);

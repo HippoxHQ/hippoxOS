@@ -293,6 +293,11 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         commands::cmd_get_settings_auto_start,
         commands::cmd_save_settings_auto_start,
         commands::cmd_save_csv_file,
+        commands::cmd_create_empty_file,
+        commands::cmd_get_tmp_dir,
+        commands::cmd_create_directory,
+        commands::cmd_delete_file,
+        commands::cmd_delete_directory,
         commands::cmd_get_disabled_drivers,
         commands::cmd_set_disabled_drivers,
         commands::cmd_get_drivers,
@@ -969,6 +974,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_delete_generate_audio_task,
         subsystem::cmd_cancel_generate_audio_task,
         subsystem::cmd_get_generate_audio_session_tasks,
+        // Infinite Canvas Material
+        subsystem::cmd_register_canvas_asset_as_material,
         //  Video Overlays
         subsystem::cmd_register_overlay,
         subsystem::cmd_list_overlays,
@@ -1029,6 +1036,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_delete_session_cover,
         subsystem::cmd_get_session_cover_frame_paths,
         subsystem::cmd_crop_session_cover,
+        subsystem::cmd_get_is_infinite_canvas_project,
         // subsystem::cmd_update_track_block_position,
         // subsystem::cmd_update_track_block_size,
         subsystem::cmd_update_track_block_transform,
@@ -1112,6 +1120,10 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_get_session_export_progress,
         subsystem::cmd_get_session_export_status,
         subsystem::cmd_get_audio_formats,
+        // Infinite Canvas
+        subsystem::cmd_unpack_infinite_canvas,
+        subsystem::cmd_get_infinite_canvas_tree,
+        subsystem::cmd_get_infinite_canvas_material_binding,
         // ============================================== PixelEditor  ==============================================
         subsystem::cmd_get_pixeleditor_canvas_metadata,
         subsystem::cmd_save_pixeleditor_canvas_metadata,

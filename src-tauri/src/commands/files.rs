@@ -1,3 +1,4 @@
+use crate::commands::get_tmp_dir;
 use crate::commons::FileError;
 use crate::commons::FileUtils;
 use base64::engine::general_purpose::STANDARD;
@@ -272,4 +273,49 @@ fn format_file_error(err: &FileError) -> String {
         FileError::CopyError(msg) => msg.clone(),
         FileError::RemoveError(msg) => msg.clone(),
     }
+}
+/// Create a new empty file
+#[tauri::command]
+pub async fn cmd_create_empty_file(path: String) -> Result<(), String> {
+    let path = Path::new(&path);
+    if let Some(parent) = path.parent() {
+        FileUtils::ensure_dir(parent).map_err(|e| format!("Failed to create parent directory: {}", format_file_error(&e)))?;
+    }
+    fs::File::create(path).map_err(|e| format!("Failed to create file: {}", e))?;
+    Ok(())
+}
+/// Create a directory (including parent directories)
+#[tauri::command]
+pub async fn cmd_create_directory(path: String) -> Result<(), String> {
+    let path = Path::new(&path);
+    FileUtils::ensure_dir(path).map_err(|e| format!("Failed to create directory: {}", format_file_error(&e)))?;
+    Ok(())
+}
+/// Delete a file
+#[tauri::command]
+pub async fn cmd_delete_file(path: String) -> Result<(), String> {
+    let path = Path::new(&path);
+    if !FileUtils::file_exists(path) {
+        return Err(format!("File does not exist: {}", path.display()));
+    }
+    FileUtils::remove_file(path).map_err(|e| format!("Failed to delete file: {}", format_file_error(&e)))?;
+    Ok(())
+}
+/// Delete a directory and all its contents
+#[tauri::command]
+pub async fn cmd_delete_directory(path: String) -> Result<(), String> {
+    let path = Path::new(&path);
+    if !FileUtils::path_exists(path) {
+        return Err(format!("Directory does not exist: {}", path.display()));
+    }
+    if !path.is_dir() {
+        return Err(format!("Path is not a directory: {}", path.display()));
+    }
+    FileUtils::remove_dir_all(path).map_err(|e| format!("Failed to delete directory: {}", format_file_error(&e)))?;
+    Ok(())
+}
+/// Get the temporary directory path
+#[tauri::command]
+pub fn cmd_get_tmp_dir() -> String {
+    FileUtils::to_string_lossy(&get_tmp_dir())
 }

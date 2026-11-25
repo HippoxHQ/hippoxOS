@@ -397,6 +397,7 @@ fn process_text_files(app_handle: tauri::AppHandle, session_id: &str, text_paths
 /// * `image_source_paths` - Optional list of image file paths to import
 /// * `text_source_paths` - Optional list of text file paths to import
 /// * `nle_edit_mode` - Required editing mode ("video" or "audio")
+/// * `is_infinite_canvas_project` - Optional flag marking this session as an infinite canvas project
 ///
 /// # Returns
 /// * `Ok(String)` - Path to the session directory
@@ -417,8 +418,12 @@ pub fn cmd_create_video_dialog_session(
     image_source_paths: Option<Vec<String>>,
     text_source_paths: Option<Vec<String>>,
     nle_edit_mode: String,
+    is_infinite_canvas_project: Option<bool>,
 ) -> Result<String, String> {
-    debug!("cmd_create_video_dialog_session - START: session_id={}, title={}, nle_edit_mode={}", session_id, title, nle_edit_mode);
+    debug!(
+        "cmd_create_video_dialog_session - START: session_id={}, title={}, nle_edit_mode={}, is_infinite_canvas_project={:?}",
+        session_id, title, nle_edit_mode, is_infinite_canvas_project
+    );
     // Parse the required editing mode. Unknown values fall back to video.
     let nle_edit_mode = NLEEditMode::from_str(&nle_edit_mode);
     // CALCULATE FILE COUNT FIRST - BEFORE ANY MOVES
@@ -458,6 +463,8 @@ pub fn cmd_create_video_dialog_session(
     let mut session_metadata = SessionMetadata::new(session_id, title, description);
     // Persist the requested editing mode on the session metadata.
     session_metadata.set_nle_edit_mode(nle_edit_mode);
+    // Set the infinite canvas project flag.
+    session_metadata.set_is_infinite_canvas_project(is_infinite_canvas_project);
     if let Some(mode) = workflow_mode {
         debug!("cmd_create_video_dialog_session - Setting workflow_mode: {}", mode);
         session_metadata.workflow_mode = mode;
@@ -553,7 +560,6 @@ pub fn cmd_create_video_dialog_session(
             debug!("cmd_create_video_dialog_session - No valid text paths to process");
         }
     }
-    // Save configuration and session files
     let config = serde_json::json!({
         "session_id": session_id,
         "title": title,
@@ -563,8 +569,8 @@ pub fn cmd_create_video_dialog_session(
         "workflow_mode": session_metadata.workflow_mode,
         "workspace_path": workspace_dir.to_string_lossy().to_string(),
         "metadata_path": metadata_path.to_string_lossy().to_string(),
-        // Persist the editing mode in the on-disk session config as well.
         "nle_edit_mode": nle_edit_mode.as_str(),
+        "is_infinite_canvas_project": session_metadata.get_is_infinite_canvas_project(),
     });
     let config_path = session_dir.join("config.json");
     debug!("cmd_create_video_dialog_session - Saving config to: {:?}", config_path);
@@ -576,7 +582,12 @@ pub fn cmd_create_video_dialog_session(
     let terminal_path = session_dir.join("terminal.json");
     debug!("cmd_create_video_dialog_session - Saving terminal history to: {:?}", terminal_path);
     FileUtils::write_file(&terminal_path, initial_terminal_content.as_bytes()).map_err(|e| format!("Failed to save terminal history: {:?}", e))?;
-    info!("cmd_create_video_dialog_session - Session created: session_id={}, file_count={}", session_id, file_count);
+    info!(
+        "cmd_create_video_dialog_session - Session created: session_id={}, file_count={}, is_infinite_canvas_project={:?}",
+        session_id,
+        file_count,
+        session_metadata.get_is_infinite_canvas_project()
+    );
     debug!("cmd_create_video_dialog_session - DONE: session_dir={:?}", session_dir);
     let _ = add_session_to_profile(session_id, chrono::Utc::now().timestamp_millis() as u64);
     Ok(session_dir.to_string_lossy().to_string())
@@ -716,7 +727,7 @@ pub fn cmd_load_video_session_config(session_id: &str, nle_edit_mode: String) ->
 /// * `Err(String)` - Error message if update fails
 #[tauri::command]
 pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Result<(), String> {
-    debug!("cmd_update_video_session_config - START: session_id={}", session_id);
+    debug!("cmd_update_video_session_config - START: session_id={}, updates={}", session_id, updates);
     let dir = get_video_editing_system_dialog_history_dir();
     let session_dir = dir.join(session_id);
     let config_path = session_dir.join("config.json");
@@ -750,6 +761,10 @@ pub fn cmd_update_video_session_config(session_id: &str, updates: String) -> Res
                 } else if key == "nle_edit_mode" {
                     if let Some(mode) = value.as_str() {
                         metadata.set_nle_edit_mode(NLEEditMode::from_str(mode));
+                    }
+                } else if key == "is_infinite_canvas_project" {
+                    if let Some(flag) = value.as_bool() {
+                        metadata.set_is_infinite_canvas_project(Some(flag));
                     }
                 }
             }

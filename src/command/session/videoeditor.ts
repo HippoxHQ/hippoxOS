@@ -57,6 +57,7 @@ export const videoSessionCommands = {
         imageSourcePaths: string[] | undefined,
         textSourcePaths: string[] | undefined,
         nleEditMode: NLEEditMode,
+        isInfiniteCanvasProject: boolean | undefined,
     ): Promise<string> {
         return await invoke('cmd_create_video_dialog_session', {
             sessionId,
@@ -72,6 +73,7 @@ export const videoSessionCommands = {
             imageSourcePaths,
             textSourcePaths,
             nleEditMode,
+            isInfiniteCanvasProject: isInfiniteCanvasProject ?? null,
         });
     },
     async listVideoSessions(nleEditMode: NLEEditMode): Promise<any[]> {

@@ -155,4 +155,39 @@ export const filesCommands = {
             size: info?.size ?? Math.ceil(base64.length * 0.75)
         };
     },
+    /**
+     * Create a new empty file
+     * @param path - File path to create
+     */
+    async createEmptyFile(path: string): Promise<void> {
+        return await invoke("cmd_create_empty_file", { path });
+    },
+    /**
+     * Create a directory (including parent directories)
+     * @param path - Directory path to create
+     */
+    async createDirectory(path: string): Promise<void> {
+        return await invoke("cmd_create_directory", { path });
+    },
+    /**
+     * Delete a file
+     * @param path - File path to delete
+     */
+    async deleteFile(path: string): Promise<void> {
+        return await invoke("cmd_delete_file", { path });
+    },
+    /**
+     * Delete a directory and all its contents
+     * @param path - Directory path to delete
+     */
+    async deleteDirectory(path: string): Promise<void> {
+        return await invoke("cmd_delete_directory", { path });
+    },
+    /**
+     * Get the temporary directory path
+     * @returns Temporary directory path
+     */
+    async getTmpDir(): Promise<string> {
+        return await invoke("cmd_get_tmp_dir");
+    },
 };

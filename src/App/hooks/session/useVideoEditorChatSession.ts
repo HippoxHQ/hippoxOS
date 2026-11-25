@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "../../../hooks/useTranslation";
 import { hippoxCommands, SubSystemEnum } from "../../../command/chat";
 import { taskManager } from "../../../core/TaskManager";
@@ -11,6 +11,7 @@ import { showToast, ToastType } from "../../../components/Toast";
 import { getVideoEditorSystemPrompt } from "../../../subsystem/nle/llm/prompts";
 import { NLEEditMode } from "../../../subsystem/nle/types";
 import { v4 } from "uuid";
+import infiniteCanvasCommands from "../../../command/nle/InfiniteCanvas";
 const getFileType = (filePath: string): "video" | "audio" | "image" | "text" | null => {
     const ext = filePath.split(".").pop()?.toLowerCase() || "";
     const videoExts = ["mp4", "mov", "mkv", "avi", "webm", "flv", "wmv", "m4v"];
@@ -28,6 +29,10 @@ export function useVideoSession(
     isConfigLoaded: boolean,
     // Required: the editing mode this session hook belongs to.
     nleEditMode: NLEEditMode,
+    // Optional: aicv file path to import on init.
+    aicvFilePath?: string | null,
+    // Optional: callback when aicv import is complete.
+    onAicvImportComplete?: () => void,
 ) {
     const [currentSessionId, setCurrentSessionId] = useState<string>("");
     const [currentWorkflowMode, setCurrentWorkflowMode] = useState<string>("ReAct");
@@ -37,6 +42,8 @@ export function useVideoSession(
     const [pendingVideoPath, setPendingVideoPath] = useState<string>("");
     const [pendingVideoTitle, setPendingVideoTitle] = useState<string>("");
     const [isCreatingSession, setIsCreatingSession] = useState<boolean>(false);
+    // Guard to ensure aicv import only happens once
+    const hasHandledAicvImportRef = useRef<boolean>(false);
     const { t } = useTranslation(language);
     useEffect(() => {
         const unsubscribe = taskManager.subscribe(() => {
@@ -76,45 +83,57 @@ export function useVideoSession(
         }
     }, [currentSessionId, isLoading, taskManagerVersion]);
     useEffect(() => {
-        if (isConfigLoaded) {
-            videoSessionCommands.listVideoSessions(nleEditMode)
-                .then(list => {
-                    if (list.length > 0) {
-                        const sorted = list.sort((a, b) => {
-                            const aTs = parseInt(a.session_id.replace("video_session_", "")) || 0;
-                            const bTs = parseInt(b.session_id.replace("video_session_", "")) || 0;
-                            return bTs - aTs;
-                        });
-                        const sessionId = sorted[0].session_id;
-                        setCurrentSessionId(sessionId);
-                        Promise.all([
-                            videoSessionCommands.loadChatContent(sessionId),
-                            videoSessionCommands.loadTerminalContent(sessionId)
-                        ]).then(([chatContent, terminalContent]) => {
-                            const userMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.User);
-                            const assistantMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.LLM);
-                            taskManager.loadSessionData(sessionId, terminalContent || [], userMessages, assistantMessages, SessionDomain.Video);
-                            setIsLoading(false);
-                        }).catch(() => {
-                            setIsLoading(false);
-                        });
-                    } else {
-                        const pendingId = `pending_${Date.now()}`;
-                        taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Video);
-                        setCurrentSessionId(pendingId);
-                        setPendingNewSession(true);
+        if (!isConfigLoaded) return;
+        // If aicvFilePath is provided, import it directly instead of loading existing sessions
+        if (aicvFilePath) {
+            if (hasHandledAicvImportRef.current) return;
+            hasHandledAicvImportRef.current = true;
+            handleNewSession(true, aicvFilePath, "aicv", true).then(() => {
+                onAicvImportComplete?.();
+            });
+            setIsLoading(false);
+            return;
+        }
+        // Guard to prevent double loading
+        if (hasHandledAicvImportRef.current) return;
+        hasHandledAicvImportRef.current = true;
+        videoSessionCommands.listVideoSessions(nleEditMode)
+            .then(list => {
+                if (list.length > 0) {
+                    const sorted = list.sort((a, b) => {
+                        const aTs = parseInt(a.session_id.replace("video_session_", "")) || 0;
+                        const bTs = parseInt(b.session_id.replace("video_session_", "")) || 0;
+                        return bTs - aTs;
+                    });
+                    const sessionId = sorted[0].session_id;
+                    setCurrentSessionId(sessionId);
+                    Promise.all([
+                        videoSessionCommands.loadChatContent(sessionId),
+                        videoSessionCommands.loadTerminalContent(sessionId)
+                    ]).then(([chatContent, terminalContent]) => {
+                        const userMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.User);
+                        const assistantMessages = (chatContent || []).filter(msg => msg.role === RoleEnum.LLM);
+                        taskManager.loadSessionData(sessionId, terminalContent || [], userMessages, assistantMessages, SessionDomain.Video);
                         setIsLoading(false);
-                    }
-                })
-                .catch(() => {
+                    }).catch(() => {
+                        setIsLoading(false);
+                    });
+                } else {
                     const pendingId = `pending_${Date.now()}`;
                     taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Video);
                     setCurrentSessionId(pendingId);
                     setPendingNewSession(true);
                     setIsLoading(false);
-                });
-        }
-    }, [isConfigLoaded]);
+                }
+            })
+            .catch(() => {
+                const pendingId = `pending_${Date.now()}`;
+                taskManager.loadSessionData(pendingId, [], [], [], SessionDomain.Video);
+                setCurrentSessionId(pendingId);
+                setPendingNewSession(true);
+                setIsLoading(false);
+            });
+    }, [isConfigLoaded, aicvFilePath]);
     const createVideoSessionWithPath = useCallback(async (
         sessionId: string,
         title: string,
@@ -124,8 +143,10 @@ export function useVideoSession(
         imageSourcePaths?: string[],
         textSourcePaths?: string[],
         workflowMode?: string,
+        isInfiniteCanvasProject?: boolean,
     ) => {
-        return await videoSessionCommands.createVideoSession(
+        console.log("[createVideoSessionWithPath] isInfiniteCanvasProject:", isInfiniteCanvasProject);
+        const result = await videoSessionCommands.createVideoSession(
             sessionId,
             title,
             description,
@@ -138,20 +159,61 @@ export function useVideoSession(
             audioSourcePaths,
             imageSourcePaths,
             textSourcePaths,
-            // Pass the editing mode so the backend stores it on the session.
             nleEditMode,
+            isInfiniteCanvasProject,
         );
+        console.log("[createVideoSessionWithPath] Session created:", result);
+        return result;
     }, [currentWorkflowMode, nleEditMode]);
     /**
      * Create a new video session
      *
      * @param filePath - File path (optional)
      * @param fileType - File type: "file" | "empty" | "download"
+     * @param isInfiniteCanvas - Whether this session is an infinite canvas project
      */
     const handleNewSession = useCallback(
-        async (filePath?: string, fileType?: "file" | "empty" | "download") => {
-            // Handle file or download types - both use the same logic
-            if (filePath && (fileType === "file" || fileType === "download")) {
+        async (isDeleteSource: boolean, filePath?: string, fileType?: "file" | "empty" | "download" | "aicv", isInfiniteCanvas?: boolean) => {
+            console.log("[handleNewSession] fileType:", fileType, "isInfiniteCanvas:", isInfiniteCanvas);
+            // Handle aicv import type
+            if (fileType === "aicv" && filePath) {
+                setIsCreatingSession(true);
+                try {
+                    const newSessionId = `video_session_${v4()}_${Date.now()}`;
+                    const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    console.log("[handleNewSession] creating aicv project");
+                    await createVideoSessionWithPath(
+                        newSessionId,
+                        title,
+                        "Infinite Canvas Project",
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        currentWorkflowMode,
+                        true,
+                    );
+                    taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
+                    setCurrentSessionId(newSessionId);
+                    setPendingNewSession(false);
+                    setPendingVideoPath("");
+                    setPendingVideoTitle("");
+                    window.dispatchEvent(new CustomEvent("video-session-created"));
+                    // Unpack aicv in background without blocking
+                    infiniteCanvasCommands.unpackInfiniteCanvas(newSessionId, filePath, isDeleteSource).catch((e) => {
+                        console.error("unpack aicv failed:", e);
+                    });
+                } catch (error) {
+                    console.error("Failed to create aicv project:", error);
+                    showToast(
+                        ToastType.ERROR,
+                        language === "zh" ? "创建画布项目失败" : "Failed to create canvas project"
+                    );
+                } finally {
+                    setIsCreatingSession(false);
+                }
+            } else if (filePath && (fileType === "file" || fileType === "download")) {
+                // Handle file or download types - both use the same logic
                 setIsCreatingSession(true);
                 try {
                     const newSessionId = `video_session_${v4()}_${Date.now()}`;
@@ -184,6 +246,7 @@ export function useVideoSession(
                         imageSourcePaths,
                         textSourcePaths,
                         currentWorkflowMode,
+                        isInfiniteCanvas ?? false,
                     );
                     taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
                     setCurrentSessionId(newSessionId);
@@ -211,6 +274,7 @@ export function useVideoSession(
                 try {
                     const newSessionId = `video_session_${v4()}_${Date.now()}`;
                     const title = new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    console.log("[handleNewSession] creating empty project, isInfiniteCanvas:", isInfiniteCanvas);
                     await createVideoSessionWithPath(
                         newSessionId,
                         title,
@@ -220,6 +284,7 @@ export function useVideoSession(
                         undefined,
                         undefined,
                         currentWorkflowMode,
+                        isInfiniteCanvas ?? false,
                     );
                     taskManager.loadSessionData(newSessionId, [], [], [], SessionDomain.Video);
                     setCurrentSessionId(newSessionId);

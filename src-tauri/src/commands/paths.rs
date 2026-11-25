@@ -45,6 +45,8 @@ pub const CODEEDITOR_METADATA_PATH: &str = ".hippox";
 const SKILLS_MARKET_DIR_NAME: &str = "SkillsMarket";
 /// Log directory name
 const LOG_DIR_NAME: &str = "logs";
+/// Temporary directory
+const TMP_DIR_NAME: &str = "tmp";
 /// Cache directory name
 const CACHE_DIR_NAME: &str = "cache";
 /// Settings directory name
@@ -186,6 +188,10 @@ pub fn get_log_dir() -> PathBuf {
 /// Cache directory: HippoX/cache
 pub fn get_cache_dir() -> PathBuf {
     get_app_root_dir().join(CACHE_DIR_NAME)
+}
+/// Temporary directory: HippoX/tmp
+pub fn get_tmp_dir() -> PathBuf {
+    get_app_root_dir().join(TMP_DIR_NAME)
 }
 /// Settings directory: HippoX/settings
 pub fn get_settings_dir() -> PathBuf {

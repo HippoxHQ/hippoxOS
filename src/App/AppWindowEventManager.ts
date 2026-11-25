@@ -32,7 +32,7 @@ export const APP_WINDOW_EVENTS = {
     VIDEO_SESSION_CREATED: "APP_WINDOW_EVENT_VIDEO_SESSION_CREATED",
     SANDBOX3D_SESSION_CREATED: "APP_WINDOW_EVENT_SANDBOX3D_SESSION_CREATED",
     BLOCKCHAIN_SESSION_CREATED: "APP_WINDOW_EVENT_BLOCKCHAIN_SESSION_CREATED",
-    // New subsystem session created events
+    // subsystem session created events
     IMAGE_EDITOR_SESSION_CREATED: "APP_WINDOW_EVENT_IMAGE_EDITOR_SESSION_CREATED",
     PIXEL_EDITOR_SESSION_CREATED: "APP_WINDOW_EVENT_PIXEL_EDITOR_SESSION_CREATED",
     DATABASE_CLIENT_SESSION_CREATED: "APP_WINDOW_EVENT_DATABASE_CLIENT_SESSION_CREATED",
@@ -46,6 +46,8 @@ export const APP_WINDOW_EVENTS = {
     WORKSPACE_LOADED: "APP_WINDOW_EVENT_WORKSPACE_LOADED",
     SCENE_LOADED: "APP_WINDOW_EVENT_SCENE_LOADED",
     VIDEO_LOADED: "APP_WINDOW_EVENT_VIDEO_LOADED",
+    // AICV import event
+    NLE_IMPORT_AICV: "APP_WINDOW_EVENT_NLE_IMPORT_AICV",
     // UI events
     TOGGLE_FUNCTION_PANEL_MAXIMIZE: "APP_WINDOW_EVENT_TOGGLE_FUNCTION_PANEL_MAXIMIZE",
     OPEN_SKILLS_MARKET: "APP_WINDOW_EVENT_OPEN_SKILLS_MARKET",
@@ -100,6 +102,9 @@ export interface SceneLoadedPayload {
 export interface VideoLoadedPayload {
     path: string;
     title: string;
+}
+export interface NleImportAicvPayload {
+    filePath: string;
 }
 export interface OpenSettingsPayload {
     subView?: string;
@@ -201,7 +206,6 @@ export function dispatchOpenSubsystem(
     sessionId?: string | null,
     filePath?: string | null,
 ): void {
-    console.log("[AppWindowEventManager] dispatchOpenSubsystem", { subsystem, sessionId, filePath });
     window.dispatchEvent(
         new CustomEvent<OpenSubsystemPayload>(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, {
             detail: { subsystem, sessionId: sessionId ?? null, filePath: filePath ?? null },
@@ -214,11 +218,33 @@ export function dispatchOpenSubsystem(
 export function onOpenSubsystem(handler: (payload: OpenSubsystemPayload) => void): () => void {
     const wrapped = (event: Event) => {
         const detail = (event as CustomEvent<OpenSubsystemPayload>).detail;
-        console.log("[AppWindowEventManager] onOpenSubsystem received", detail);
         handler(detail);
     };
     window.addEventListener(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, wrapped);
     return () => {
         window.removeEventListener(APP_WINDOW_EVENTS.OPEN_SUBSYSTEM, wrapped);
+    };
+}
+/**
+ * Dispatch the NLE_IMPORT_AICV event.
+ */
+export function dispatchNleImportAicv(filePath: string): void {
+    window.dispatchEvent(
+        new CustomEvent<NleImportAicvPayload>(APP_WINDOW_EVENTS.NLE_IMPORT_AICV, {
+            detail: { filePath },
+        }),
+    );
+}
+/**
+ * Listen for the NLE_IMPORT_AICV event.
+ */
+export function onNleImportAicv(handler: (payload: NleImportAicvPayload) => void): () => void {
+    const wrapped = (event: Event) => {
+        const detail = (event as CustomEvent<NleImportAicvPayload>).detail;
+        handler(detail);
+    };
+    window.addEventListener(APP_WINDOW_EVENTS.NLE_IMPORT_AICV, wrapped);
+    return () => {
+        window.removeEventListener(APP_WINDOW_EVENTS.NLE_IMPORT_AICV, wrapped);
     };
 }
