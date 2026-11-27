@@ -185,12 +185,11 @@ export function useSandBox3DSession(
             const systemPrompt = getSandBox3DSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
-            const taskId = await hippoxCommands.sendMessageAsync(
+            const taskId = await hippoxCommands.sendPureMessageAsync(
                 userMessage,
                 fullMessage,
                 SubSystemEnum.SandBox3D,
                 finalSessionId,
-                mode,
             );
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {

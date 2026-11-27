@@ -210,12 +210,11 @@ export function useCodeEditorSession(
                 : userMessage;
             const fullMessage = `${systemPrompt}\n\n User: ${userMessageWithWorkspace}`;
             const mode = workflowMode || currentWorkflowMode;
-            const taskId = await hippoxCommands.sendMessageAsync(
+            const taskId = await hippoxCommands.sendPureMessageAsync(
                 userMessageWithWorkspace,
                 fullMessage,
                 SubSystemEnum.CodeEditor,
                 finalSessionId,
-                mode,
             );
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {

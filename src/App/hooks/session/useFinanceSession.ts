@@ -204,12 +204,11 @@ export function useFinanceSession(
             // The LLM receives the FULL message including [MARKET_DATA].
             const fullMessage = `${systemPrompt}\n\n User: ${backendMessage}`;
             const mode = workflowMode || currentWorkflowMode;
-            const taskId = await hippoxCommands.sendMessageAsync(
+            const taskId = await hippoxCommands.sendPureMessageAsync(
                 backendMessage,
                 fullMessage,
                 SubSystemEnum.Finance,
                 finalSessionId,
-                mode,
             );
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {

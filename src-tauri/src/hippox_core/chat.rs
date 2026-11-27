@@ -208,6 +208,68 @@ pub async fn cmd_send_chat_message_async(
     Ok(core_task_id)
 }
 #[tauri::command]
+pub async fn cmd_send_pure_chat_message_async(
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+    raw_message: String,
+    message: String,
+    session_id: Option<String>,
+    subsystem: Option<String>,
+) -> Result<String, String> {
+    let session = session_id.clone().unwrap_or_else(|| "default".to_string());
+    let subsystem_enum = match subsystem {
+        Some(ref s) if !s.trim().is_empty() => SubSystemEnum::from_str(s)?,
+        _ => SubSystemEnum::General,
+    };
+    let hippox = get_default_hippox_with_chat_model().await?;
+    let mem = state.get_memcontext().await;
+    // Store user message
+    if let Some(ref mem_ref) = mem {
+        let _ = store_user_message(mem_ref, &session, &raw_message).await;
+    }
+    // Increment chat count
+    let _ = increment_session_chat_count(&session);
+    // Build enhanced message with history
+    let enhanced_message = build_enhanced_message(mem.as_deref(), &session, &message).await;
+    // Only workflow callback, no driver callback
+    let workflow_callback = Arc::new(HippoXWorkflowCallback::new(app_handle.clone(), session.clone()));
+    // Resolve provider and model
+    let (provider, model) = resolve_default_chat_provider_and_model().await;
+    let options = hippox::LLMOptions { max_tokens: Some(crate::commands::config::APP_CONFIG.read().await.max_tokens), ..Default::default() };
+    // Submit pure conversation task (no drivers, no workflow)
+    let core_task_id = match hippox.pure_submit(&enhanced_message, &model, Some(workflow_callback), options) {
+        HippoxResult { data: Some(task_id), .. } => task_id,
+        HippoxResult { error: Some(err), .. } => return Err(err),
+        _ => return Err("Failed to submit pure conversation task".to_string()),
+    };
+    // Statistics tracking
+    append_record(ChatStatisticsRecord::llm(&core_task_id, &session, subsystem_enum, ChatSource::Chat, "", &model, &provider, "Pure", 0, 0));
+    {
+        let task_id_for_tokens = core_task_id.clone();
+        tokio::spawn(async move {
+            let result = hippox::wait_task(&task_id_for_tokens).await;
+            let (content, input_tokens, output_tokens) = match result {
+                HippoxResult { data: Some(output), input_tokens, output_tokens, .. } => (output, input_tokens, output_tokens),
+                HippoxResult { error: Some(err), input_tokens, output_tokens, .. } => {
+                    log::warn!("[Statistics] pure task {} failed: {}", task_id_for_tokens, err);
+                    (String::new(), input_tokens, output_tokens)
+                }
+                _ => (String::new(), 0, 0),
+            };
+            update_record(
+                &task_id_for_tokens,
+                "llm",
+                RecordPatch { content: Some(content), input_tokens: Some(input_tokens), output_tokens: Some(output_tokens) },
+            );
+        });
+    }
+    let messages = LogMessages::get();
+    state.add_log("process".to_string(), messages.send_start.replace("{}", &message), Some(format!("task_id: {}", core_task_id)), None).await;
+    state.create_task(core_task_id.clone(), session.clone(), message.clone()).await;
+    state.update_task_status(&core_task_id, "pending").await;
+    Ok(core_task_id.to_string())
+}
+#[tauri::command]
 pub async fn cmd_get_task_status(state: State<'_, AppState>, task_id: String) -> Result<Option<TaskInfo>, String> {
     Ok(state.get_task(&task_id).await)
 }

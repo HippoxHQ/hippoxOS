@@ -39,7 +39,7 @@ import DataBaseClientPage from "../../subsystem/DataBaseClient";
 import DockerClientPage from "../../subsystem/DockerClient";
 import ApiClientPage from "../../subsystem/ApiClient";
 import { MENU_PANEL_WIDTH } from "../constants";
-import { getSubsystemEventInfo, onNleImportAicv, onOpenSubsystem } from "../AppWindowEventManager";
+import { APP_WINDOW_EVENTS, getSubsystemEventInfo, onNleImportAicv, onOpenSubsystem } from "../AppWindowEventManager";
 import StoryCanvasPage from "../../subsystem/StoryCanvas";
 import OfficePage from "../../subsystem/Office";
 import NLESystem from "../../subsystem/nle";
@@ -601,9 +601,14 @@ export function AppContent({
       if (!filePath) return;
       setAicvFilePath(filePath);
       onMenuClick("videoEditor");
+      window.dispatchEvent(
+        new CustomEvent(APP_WINDOW_EVENTS.SESSION_SELECTED, {
+          detail: { sessionId: currentSessionId, subsystem: "video" },
+        }),
+      );
     });
     return cleanup;
-  }, [onMenuClick]);
+  }, [onMenuClick, currentSessionId]);
   /**
    * Clear the pending session once the active panel no longer matches the
    * pending subsystem, so it is not re-applied on later remounts.

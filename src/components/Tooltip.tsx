@@ -56,7 +56,10 @@ const tooltipStyles = `
     border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
-    white-space: nowrap;
+    max-width: 358px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
     z-index: 10000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     border: 1px solid var(--border-color);

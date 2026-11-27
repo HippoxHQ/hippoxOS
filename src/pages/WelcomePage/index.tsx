@@ -187,8 +187,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onSendMessage, t, onDragOverI
     },
     {
       id: "storyCanvas",
-      label: "剧本画布",
-      labelEn: "Story Canvas",
+      label: "无限画布",
+      labelEn: "Infinite Canvas",
       description: "剧本拆分 · 分镜编排 · 镜头生成",
       descriptionEn: "Script Breakdown · Shot Planning · Shot Generation",
       bgEmoji: "🎞️",

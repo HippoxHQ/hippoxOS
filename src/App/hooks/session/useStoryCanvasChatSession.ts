@@ -196,7 +196,7 @@ export function useStoryCanvasChatSession(
                     console.error("Failed to create story canvas session:", error);
                     showToast(
                         ToastType.ERROR,
-                        language === "zh" ? "创建剧本画布会话失败" : "Failed to create story canvas session"
+                        language === "zh" ? "创建无限画布会话失败" : "Failed to create infinite canvas session"
                     );
                 } finally {
                     setIsCreatingSession(false);
@@ -339,12 +339,11 @@ export function useStoryCanvasChatSession(
             const systemPrompt = getStoryCanvasSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
-            const taskId = await hippoxCommands.sendMessageAsync(
+            const taskId = await hippoxCommands.sendPureMessageAsync(
                 userMessage,
                 fullMessage,
                 SubSystemEnum.StoryCanvas,
                 finalSessionId,
-                mode,
             );
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {

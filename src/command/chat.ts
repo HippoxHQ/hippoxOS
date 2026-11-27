@@ -71,6 +71,28 @@ export const hippoxCommands = {
             subsystem,
         });
     },
+    /**
+     * Send a pure chat message asynchronously (no drivers, no workflow).
+     *
+     * @param rawMessage    Original user text (used for memory storage).
+     * @param message       Full prompt (system prompt + user text) sent to the LLM.
+     * @param subsystem     Which chat subsystem this call belongs to.
+     *                      When omitted, the backend falls back to `General`.
+     * @param sessionId     Frontend session id.
+     */
+    async sendPureMessageAsync(
+        rawMessage: string,
+        message: string,
+        subsystem: SubSystemEnum,
+        sessionId?: string,
+    ): Promise<string> {
+        return await invoke('cmd_send_pure_chat_message_async', {
+            rawMessage,
+            message,
+            sessionId,
+            subsystem,
+        });
+    },
     async getTaskStatus(taskId: string): Promise<TaskInfo> {
         return await invoke('cmd_get_task_status', { taskId });
     },

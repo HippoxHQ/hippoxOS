@@ -165,12 +165,11 @@ export function useDataBaseClientSession(
             const systemPrompt = getDataBaseClientSystemPrompt(language as 'zh' | 'en', workspacePath);
             const fullMessage = `${systemPrompt}\n\n User: ${userMessage}`;
             const mode = workflowMode || currentWorkflowMode;
-            const taskId = await hippoxCommands.sendMessageAsync(
+            const taskId = await hippoxCommands.sendPureMessageAsync(
                 userMessage,
                 fullMessage,
                 SubSystemEnum.DataBaseClient,
                 finalSessionId,
-                mode,
             );
             const messageId = `llm_${taskId}`;
             const assistantMsg: ChatMessage = {

@@ -376,6 +376,7 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         hippox_core::cmd_set_hippox_language,
         hippox_core::cmd_get_hippox_language,
         hippox_core::cmd_send_chat_message_async,
+        hippox_core::cmd_send_pure_chat_message_async,
         hippox_core::cmd_get_task_status,
         hippox_core::cmd_get_session_tasks,
         hippox_core::cmd_get_execution_logs,
@@ -760,9 +761,11 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_clear_non_session_frame_cache,
         subsystem::cmd_get_transition_frames_by_id,
         subsystem::cmd_player_extract_frames_at_time_range,
+        subsystem::cmd_extract_material_frame,
         // Track block playback frames
         subsystem::cmd_get_track_block_frame_at_time,
         subsystem::cmd_submit_session_compress_task,
+        subsystem::cmd_submit_material_frame_warmup_task,
         // Video Materials
         subsystem::cmd_get_video_materials,
         subsystem::cmd_get_audio_materials,
@@ -1124,6 +1127,8 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_unpack_infinite_canvas,
         subsystem::cmd_get_infinite_canvas_tree,
         subsystem::cmd_get_infinite_canvas_material_binding,
+        subsystem::cmd_add_episode_to_timeline,
+        subsystem::cmd_add_scene_to_timeline,
         // ============================================== PixelEditor  ==============================================
         subsystem::cmd_get_pixeleditor_canvas_metadata,
         subsystem::cmd_save_pixeleditor_canvas_metadata,
@@ -1223,6 +1228,16 @@ pub fn register_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Clone + Send 
         subsystem::cmd_storycanvas_get_last_episode_number,
         subsystem::cmd_storycanvas_export_session,
         subsystem::cmd_storycanvas_import_session,
+        // deleted items & restore
+        subsystem::cmd_storycanvas_get_deleted_items,
+        subsystem::cmd_storycanvas_restore_episode,
+        subsystem::cmd_storycanvas_restore_scene,
+        subsystem::cmd_storycanvas_restore_shot,
+        subsystem::cmd_storycanvas_set_asset_position,
+        subsystem::cmd_storycanvas_set_asset_category_position,
+        subsystem::cmd_infinitecanvas_get_session_thumbnails,
+        subsystem::cmd_infinitecanvas_get_session_statistics,
+        subsystem::cmd_infinitecanvas_get_episode_statistics,
         // =========== Registry Commands =============
         commands::cmd_take_pending_file_open
     ]
